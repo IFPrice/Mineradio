@@ -8628,7 +8628,6 @@ function makeSkylineLyricMask(text, context) {
   drawSkylineTextLayer(ghostLayer, fontSize, 'ghost');
 
   var keywords = model.keywords || model.fragments || [];
-  for (var i = 0; i < keywords.length; i++) drawSkylineTextLayer(keywords[i], fontSize, 'keyword');
 
   ctx.save();
   ctx.globalCompositeOperation = 'destination-in';
@@ -8720,6 +8719,8 @@ function makeSkylineLyricMask(text, context) {
     lineCount: centerLines.length,
     lines: centerLines,
     fitScaleX: fitScaleX * centerScale,
+    keywordLayers: keywords,
+    keywordBaseFontSize: fontSize,
     textMin: (W / 2 - centerWidth / 2) / W,
     textMax: (W / 2 + centerWidth / 2) / W,
     skyline: true,
@@ -9071,6 +9072,133 @@ function makeLyricShaderMaterial(mask, pal) {
   });
 }
 
+function makeSkylineKeywordTexture(layer, baseSize) {
+  var text = String(layer && layer.text || '').trim();
+  if (!text) return null;
+  var layerScale = clampRange(layer.fontScale || layer.scale || 1, 0.42, 1.85);
+  var layerFont = Math.max(28, Math.round(baseSize * layerScale));
+  var diffusion = clampRange(Number(layer.diffusion) || 0.36, 0.12, 0.84);
+  var trail = clampRange(Number(layer.trail) || 0.12, 0.04, 0.40);
+  var driftX = clampRange(isFinite(Number(layer.driftX)) ? Number(layer.driftX) : (layer.side === 'left' ? -1 : 1), -1.55, 1.55);
+  var driftY = clampRange(isFinite(Number(layer.driftY)) ? Number(layer.driftY) : 0.18, -1.15, 1.15);
+  var measureCanvas = document.createElement('canvas');
+  var measureCtx = measureCanvas.getContext('2d');
+  measureCtx.font = lyricFontCss(layerFont);
+  var textW = Math.max(1, lyricMeasureText(measureCtx, text, layerFont));
+  var padX = layerFont * (0.72 + diffusion * 0.72 + trail * Math.abs(driftX) * 2.6);
+  var padY = layerFont * (0.46 + diffusion * 0.48 + trail * Math.abs(driftY) * 1.6);
+  var W = Math.ceil(textW + padX * 2);
+  var H = Math.ceil(layerFont * 1.34 + padY * 2);
+  var canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = lyricFontCss(layerFont);
+  var cx = W / 2;
+  var cy = H / 2 + layerFont * 0.34;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.filter = 'blur(' + clampRange((Number(layer.blur) || 0) + 2.0 + diffusion * 3.0, 1.2, 9.4).toFixed(2) + 'px)';
+  ctx.fillStyle = '#fff';
+  for (var ti = 5; ti >= 1; ti--) {
+    ctx.globalAlpha = 0.18 / ti;
+    lyricFillText(ctx, text, cx + driftX * trail * layerFont * 0.42 * ti, cy + driftY * trail * layerFont * 0.34 * ti, layerFont);
+  }
+  ctx.restore();
+  ctx.save();
+  ctx.filter = 'blur(' + clampRange(Number(layer.blur) || 0, 0, 5.2).toFixed(2) + 'px)';
+  ctx.globalAlpha = 0.88;
+  ctx.fillStyle = '#fff';
+  lyricFillText(ctx, text, cx, cy, layerFont);
+  ctx.restore();
+  var tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = false;
+  tex.userData = { width: W, height: H, fontSize: layerFont };
+  return tex;
+}
+
+function buildSkylineKeywordGroup(mask, pal, worldW, worldH) {
+  var layers = mask && mask.keywordLayers || [];
+  if (!mask || !mask.skyline || !layers.length) return null;
+  var group = new THREE.Group();
+  group.renderOrder = 45;
+  var pxToWorld = worldW / Math.max(1, mask.width);
+  var pyToWorld = worldH / Math.max(1, mask.height);
+  for (var i = 0; i < layers.length; i++) {
+    var layer = layers[i];
+    var tex = makeSkylineKeywordTexture(layer, mask.keywordBaseFontSize || mask.fontSize || 100);
+    if (!tex) continue;
+    var meta = tex.userData || {};
+    var kw = Math.max(0.08, (meta.width || 1) * pxToWorld);
+    var kh = Math.max(0.04, (meta.height || 1) * pyToWorld);
+    var mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      color: lyricThreeColor(i % 2 ? (pal.highlight || pal.primary) : (pal.secondary || pal.primary), '#9cffdf', i % 2 ? 0.44 : 0.34)
+    });
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(kw, kh, 1, 1), mat);
+    var baseX = clampRange(layer.x || 0, -1.08, 1.08) * worldW * 0.48;
+    var baseY = -clampRange(layer.y || 0, -1.12, 1.12) * worldH * 0.74;
+    var alignOffset = layer.side === 'left' ? -kw * 0.28 : (layer.side === 'right' ? kw * 0.28 : 0);
+    mesh.position.set(baseX + alignOffset, baseY, 0.024 + i * 0.001);
+    mesh.rotation.z = (Number(layer.rotate) || 0) * Math.PI / 180;
+    mesh.renderOrder = 45 + i;
+    mesh.userData.skylineKeyword = {
+      baseX: mesh.position.x,
+      baseY: mesh.position.y,
+      baseZ: mesh.position.z,
+      baseRotation: mesh.rotation.z,
+      baseScale: 1,
+      opacity: clampRange((Number(layer.opacity) || 0.22) * 1.18, 0.15, 0.52),
+      delay: clampRange(Number(layer.delay) || i * 0.045, 0, 0.50),
+      driftX: clampRange(isFinite(Number(layer.driftX)) ? Number(layer.driftX) : (layer.side === 'left' ? -1 : 1), -1.55, 1.55),
+      driftY: clampRange(isFinite(Number(layer.driftY)) ? Number(layer.driftY) : 0.18, -1.15, 1.15),
+      distance: 0.12 + clampRange(Number(layer.diffusion) || 0.36, 0.12, 0.84) * 0.13,
+      curve: 0.018 + (i % 4) * 0.006,
+      phase: i * 1.73 + Math.random() * 0.30,
+      speed: 0.52 + (i % 5) * 0.075
+    };
+    group.add(mesh);
+  }
+  return group.children.length ? group : null;
+}
+
+function tickSkylineKeywordGroup(data, mesh, isCurrent, opacityScale, cancelY, cancelZ, t) {
+  var group = data && data.keywordGroup;
+  if (!group) return;
+  var age = (mesh.userData.outKeywordAge || 0) + (mesh.userData.age || 0);
+  group.position.y = cancelY || 0;
+  group.position.z = cancelZ || 0;
+  group.visible = opacityScale > 0.012;
+  for (var i = 0; i < group.children.length; i++) {
+    var child = group.children[i];
+    var info = child.userData && child.userData.skylineKeyword;
+    if (!info || !child.material) continue;
+    var localAge = Math.max(0, age - info.delay);
+    var appear = clampRange(localAge / 0.42, 0, 1);
+    appear = appear * appear * (3 - 2 * appear);
+    var travel = clampRange(localAge / (isCurrent ? 2.45 : 1.15), 0, 1);
+    travel = 1 - Math.pow(1 - travel, 2.2);
+    var lateral = Math.sin(t * info.speed + info.phase) * info.curve * appear;
+    var vertical = Math.cos(t * (info.speed * 0.76) + info.phase * 1.31) * info.curve * 0.72 * appear;
+    child.position.x = info.baseX + info.driftX * info.distance * travel + lateral;
+    child.position.y = info.baseY - info.driftY * info.distance * 0.72 * travel + vertical;
+    child.position.z = info.baseZ + Math.sin(t * 0.35 + info.phase) * 0.010 * appear;
+    child.rotation.z = info.baseRotation + Math.sin(t * 0.38 + info.phase) * 0.018 * appear;
+    child.scale.setScalar(info.baseScale * (0.94 + appear * 0.08 + Math.sin(t * 0.50 + info.phase) * 0.010 * appear));
+    child.material.opacity = info.opacity * appear * opacityScale * (isCurrent ? 1 : 0.82);
+  }
+}
+
 function buildLyricMesh(text, context) {
   text = String(text || '').replace(/\s+/g, ' ').trim();
   var mask = makeLyricMask(text, context);
@@ -9133,6 +9261,9 @@ function buildLyricMesh(text, context) {
   textMesh.renderOrder = 43;
   group.add(textMesh);
 
+  var keywordGroup = buildSkylineKeywordGroup(mask, pal, worldW, worldH);
+  if (keywordGroup) group.add(keywordGroup);
+
   var sparkCount = 132;
   var pgeo = new THREE.BufferGeometry();
   var ppos = new Float32Array(sparkCount * 3);
@@ -9193,6 +9324,7 @@ function buildLyricMesh(text, context) {
   group.userData.lyric = {
     mask:mask, textMesh:textMesh, readability:readability, glow:glow, sparks:sparks, sun:sun,
     textMat:textMat, readabilityMat:readabilityMat, glowMat:glowMat, sparkMat:pmat, sunMat:sunMat,
+    keywordGroup:keywordGroup,
     basePositions:ppos.slice ? ppos.slice(0) : new Float32Array(ppos),
     textWorldW:textWorldW, textWorldH:textWorldH, worldW:worldW, worldH:worldH
   };
@@ -9222,6 +9354,7 @@ function showStageLine(text, redrawOnly, context) {
     stageLyrics.current = null;
   } else if (stageLyrics.current) {
     stageLyrics.current.userData.state = 'out';
+    stageLyrics.current.userData.outKeywordAge = stageLyrics.current.userData.age || 0;
     stageLyrics.current.userData.age = 0;
     stageLyrics.current.userData.rollDir = rollDir;
     stageLyrics.current.userData.skylineRoll = useSkylineLyricMask();
@@ -9489,6 +9622,8 @@ function updateStageLyrics3D(dt) {
         data.sun.rotation.z += Math.sin(t * 0.32 + seed) * 0.010 * sunPulse;
       }
       var breathe = Math.sin(t * 0.92 + seed) * 0.050 + Math.sin(t * 0.41 + seed * 0.7) * 0.028;
+      var keywordCancelY = 0;
+      var keywordCancelZ = 0;
       if (skullMouthLyrics) {
         var mouthMeshY = -0.070 + Math.sin(t * 0.50 + seed) * 0.018 + Math.sin(t * 1.12 + seed) * 0.006;
         var mouthMeshZ = 0.018 + Math.cos(t * 0.46 + seed) * 0.007;
@@ -9514,6 +9649,8 @@ function updateStageLyrics3D(dt) {
         if (mesh.userData.skylineRoll && rollAge < 1) {
           meshTargetY -= rollDir * (1 - rollEase) * 0.42;
           meshTargetZ -= (1 - rollEase) * 0.045;
+          keywordCancelY = rollDir * (1 - rollEase) * 0.42;
+          keywordCancelZ = (1 - rollEase) * 0.045;
           mesh.scale.multiplyScalar(1.0 - Math.sin(rollAge * Math.PI) * 0.018);
         }
         mesh.position.y += (meshTargetY - mesh.position.y) * (mesh.userData.skylineRoll && rollAge < 1 ? 0.26 : 0.075);
@@ -9521,6 +9658,7 @@ function updateStageLyrics3D(dt) {
         mesh.rotation.z = Math.sin(t * 0.34 + seed) * 0.018;
         if (mesh.userData.skylineRoll && rollAge < 1) mesh.rotation.z += -rollDir * (1 - rollEase) * 0.018;
       }
+      tickSkylineKeywordGroup(data, mesh, true, opacity, keywordCancelY, keywordCancelZ, t);
       if (data.sparks && data.sparkMat) data.sparks.visible = fx.lyricGlowParticles || getLyricSparkOpacity(data) > 0.015;
       if (data.sparks && data.basePositions) {
         var pos = data.sparks.geometry.attributes.position;
@@ -9549,10 +9687,12 @@ function updateStageLyrics3D(dt) {
       else mesh.position.y += outDir * dt * 1.08;
       if (isFinite(mesh.userData.outStartZ)) mesh.position.z = mesh.userData.outStartZ - 0.16 * outEase;
       else mesh.position.z -= dt * 0.26;
+      tickSkylineKeywordGroup(data, mesh, false, outFade, -outDir * 0.46 * outEase, 0.16 * outEase, t);
       mesh.rotation.z += outDir * dt * 0.055;
       mesh.scale.setScalar((mesh.userData.outStartScale || 1) * (1.0 - outEase * 0.055));
     } else {
       opacity = (1 - a) * 0.72 * shelfDetailLyricProfile.outgoing;
+      tickSkylineKeywordGroup(data, mesh, false, 1 - a, 0, 0, t);
     }
     if (data.textMat) data.textMat.uniforms.uOpacity.value = opacity;
     if (data.readabilityMat) data.readabilityMat.opacity = opacity * (shelfDetailOpen ? shelfDetailLyricProfile.readability : 0.58);

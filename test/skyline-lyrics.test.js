@@ -71,8 +71,8 @@ test('buildModel creates oversized side keywords with outward diffusion', () => 
 
   const left = model.keywords.filter((keyword) => keyword.side === 'left');
   const right = model.keywords.filter((keyword) => keyword.side === 'right');
-  assert.ok(left.length >= 5);
-  assert.ok(right.length >= 5);
+  assert.ok(left.length >= 8);
+  assert.ok(right.length >= 8);
   assert.ok(model.keywords.every((keyword) => keyword.opacity > 0 && keyword.opacity < model.center.opacity));
   assert.ok(model.keywords.some((keyword) => keyword.fontScale > 1.28));
   assert.ok(model.keywords.some((keyword) => keyword.trail > 0));
@@ -80,10 +80,11 @@ test('buildModel creates oversized side keywords with outward diffusion', () => 
   assert.ok(model.keywords.some((keyword) => keyword.driftY > 0.6));
   assert.ok(model.keywords.some((keyword) => keyword.driftY < -0.5));
   assert.ok(Math.max(...model.keywords.map((keyword) => keyword.spread)) > Math.min(...model.keywords.map((keyword) => keyword.spread)));
-  assert.ok(Math.max(...model.keywords.map((keyword) => keyword.y)) - Math.min(...model.keywords.map((keyword) => keyword.y)) > 0.95);
+  assert.ok(Math.max(...model.keywords.map((keyword) => keyword.y)) - Math.min(...model.keywords.map((keyword) => keyword.y)) > 2.00);
   assert.ok(model.keywords.some((keyword) => Math.abs(keyword.x) < 0.62));
-  assert.ok(Math.max(...left.map((keyword) => Math.abs(keyword.x))) > 0.88);
-  assert.ok(Math.max(...right.map((keyword) => Math.abs(keyword.x))) > 0.88);
+  assert.ok(Math.max(...left.map((keyword) => Math.abs(keyword.x))) > 0.62);
+  assert.ok(Math.max(...right.map((keyword) => Math.abs(keyword.x))) > 0.62);
+  assert.ok(Math.max(...model.keywords.map((keyword) => Math.abs(keyword.x))) < 0.78);
 });
 
 test('buildModel derives side keywords from the current lyric', () => {
