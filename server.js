@@ -59,10 +59,12 @@ const HOST = process.env.HOST || '0.0.0.0';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 const COOKIE_FILE = process.env.COOKIE_FILE || path.join(__dirname, '.cookie');
 const QQ_COOKIE_FILE = process.env.QQ_COOKIE_FILE || path.join(__dirname, '.qq-cookie');
+const QISHUI_COOKIE_FILE = process.env.QISHUI_COOKIE_FILE || path.join(__dirname, '.qishui-cookie');
+const QISHUI_DEVICE_FILE = process.env.QISHUI_DEVICE_FILE || path.join(__dirname, '.qishui-device.json');
 const UPDATE_WORK_DIR = process.env.MINERADIO_UPDATE_DIR || path.join(__dirname, 'updates');
 const UPDATE_DOWNLOAD_DIR = process.env.MINERADIO_UPDATE_DOWNLOAD_DIR || path.join(UPDATE_WORK_DIR, 'downloads');
 const UPDATE_PATCH_BACKUP_DIR = process.env.MINERADIO_PATCH_BACKUP_DIR || path.join(UPDATE_WORK_DIR, 'backups', 'patches');
-const BEATMAP_CACHE_DIR = process.env.MINERADIO_BEAT_CACHE_DIR || 'D:\\MineradioCache\\beatmaps';
+const BEATMAP_CACHE_DIR = process.env.MINERADIO_BEAT_CACHE_DIR || path.join(UPDATE_WORK_DIR, 'beatmaps'); // [macOS port]
 const APP_PACKAGE = readPackageInfo();
 const APP_VERSION = process.env.MINERADIO_VERSION || APP_PACKAGE.version || '0.9.11';
 const UPDATE_CONFIG = readUpdateConfig(APP_PACKAGE);
@@ -185,6 +187,47 @@ function saveQQCookie(c) {
   qqCookie = normalizeCookieHeader(c) || rawCookieFallback(c);
   try { fs.writeFileSync(QQ_COOKIE_FILE, qqCookie); } catch (e) {}
 }
+
+let qishuiCookie = '';
+try { if (fs.existsSync(QISHUI_COOKIE_FILE)) qishuiCookie = fs.readFileSync(QISHUI_COOKIE_FILE, 'utf8').trim(); }
+catch (e) { qishuiCookie = ''; }
+function saveQishuiCookie(c) {
+  qishuiCookie = normalizeCookieHeader(c) || rawCookieFallback(c);
+  try { fs.writeFileSync(QISHUI_COOKIE_FILE, qishuiCookie); } catch (e) {}
+}
+
+function randomNumericString(len) {
+  let out = '';
+  while (out.length < len) out += String(crypto.randomInt(0, 10));
+  return out;
+}
+
+function loadQishuiDeviceParams() {
+  const fallback = {
+    device_id: randomNumericString(19),
+    iid: randomNumericString(19),
+    fp: randomNumericString(19),
+  };
+  try {
+    if (fs.existsSync(QISHUI_DEVICE_FILE)) {
+      const saved = JSON.parse(fs.readFileSync(QISHUI_DEVICE_FILE, 'utf8'));
+      if (saved && saved.device_id && saved.iid && saved.fp) {
+        return {
+          device_id: String(saved.device_id),
+          iid: String(saved.iid),
+          fp: String(saved.fp),
+        };
+      }
+    }
+  } catch (e) {}
+  try {
+    fs.mkdirSync(path.dirname(QISHUI_DEVICE_FILE), { recursive: true });
+    fs.writeFileSync(QISHUI_DEVICE_FILE, JSON.stringify(fallback, null, 2));
+  } catch (e) {}
+  return fallback;
+}
+
+const QISHUI_DEVICE_PARAMS = loadQishuiDeviceParams();
 
 // ---------- 工具 ----------
 function serveStatic(res, filePath) {
@@ -362,11 +405,59 @@ function extractReleaseNotes(body) {
   });
   return notes.slice(0, 4);
 }
+function releaseAssetPlatformScore(asset) {
+  const name = String(asset && asset.name || '');
+  const lower = name.toLowerCase();
+  if (!name || /\.(blockmap|ya?ml|sha(?:256|512)?)$/i.test(name)) return Number.NEGATIVE_INFINITY;
+
+  const isZip = /\.zip$/i.test(name);
+  const isDmg = /\.dmg$/i.test(name);
+  const isExe = /\.exe$/i.test(name);
+  const isMsi = /\.msi$/i.test(name);
+  const isArm = /(?:^|[-_.])(arm64|aarch64|apple[-_.]?silicon)(?:[-_.]|$)/i.test(name);
+  const isX64 = /(?:^|[-_.])(x64|x86_64|amd64|intel)(?:[-_.]|$)/i.test(name);
+  const isUniversal = /(?:^|[-_.])(universal|universal2|all)(?:[-_.]|$)/i.test(name);
+  const saysMac = /(?:^|[-_.])(mac|macos|darwin|osx)(?:[-_.]|$)/i.test(name);
+  const saysWindows = /(?:^|[-_.])(win|windows|nsis)(?:[-_.]|$)/i.test(name) || /setup\.exe$/i.test(name);
+
+  if (process.platform === 'darwin') {
+    if (!isDmg && !isZip) return Number.NEGATIVE_INFINITY;
+    let score = isDmg ? 500 : 300;
+    if (saysMac) score += 140;
+    if (saysWindows) score -= 500;
+    if (isUniversal) score += 90;
+    if (process.arch === 'arm64') score += isArm ? 120 : (isX64 ? -180 : 0);
+    else score += isX64 ? 120 : (isArm ? -180 : 0);
+    return score;
+  }
+
+  if (process.platform === 'win32') {
+    if (!isExe && !isMsi && !isZip) return Number.NEGATIVE_INFINITY;
+    let score = isExe ? 500 : (isMsi ? 450 : 260);
+    if (saysWindows) score += 100;
+    if (saysMac || isDmg) score -= 500;
+    if (process.arch === 'arm64') score += isArm ? 90 : (isX64 ? -120 : 0);
+    else score += isX64 ? 90 : (isArm ? -120 : 0);
+    return score;
+  }
+
+  if (/\.(appimage|deb|rpm|tar\.gz|zip)$/i.test(lower)) return 300;
+  return Number.NEGATIVE_INFINITY;
+}
+
+function defaultUpdateAssetName(version) {
+  if (process.platform === 'darwin') return 'Mineradio-' + version + '-mac-' + process.arch + '.dmg';
+  if (process.platform === 'win32') return 'Mineradio-' + version + '-Setup.exe';
+  return 'Mineradio-' + version + '-' + process.platform + '-' + process.arch + '.zip';
+}
+
 function pickReleaseAsset(assets) {
   const list = Array.isArray(assets) ? assets : [];
-  const preferred = list.find(a => /\.(exe|msi)$/i.test(a && a.name || ''))
-    || list.find(a => /\.(zip|7z)$/i.test(a && a.name || ''))
-    || list[0];
+  const ranked = list
+    .map((asset, index) => ({ asset, index, score: releaseAssetPlatformScore(asset) }))
+    .filter(item => Number.isFinite(item.score))
+    .sort((a, b) => (b.score - a.score) || (a.index - b.index));
+  const preferred = ranked.length ? ranked[0].asset : null;
   if (!preferred) return null;
   const digest = assetDigestInfo(preferred);
   const candidates = uniqueDownloadCandidates(preferred.browser_download_url || '');
@@ -453,7 +544,7 @@ function normalizeManifestUpdateInfo(data) {
     ? release.notes.slice(0, 4).map(cleanReleaseLine).filter(Boolean)
     : (extractReleaseNotes(release.body || data.body).length ? extractReleaseNotes(release.body || data.body) : UPDATE_FALLBACK_NOTES);
   const assetInfo = downloadUrl ? {
-    name: asset.name || updateAssetNameFromUrl(downloadUrl) || `Mineradio-${latestVersion}-Setup.exe`,
+    name: asset.name || updateAssetNameFromUrl(downloadUrl) || defaultUpdateAssetName(latestVersion),
     size: Number(asset.size || 0) || 0,
     contentType: asset.contentType || asset.content_type || '',
     downloadUrl,
@@ -1737,6 +1828,13 @@ const QQ_HEADERS = {
   Referer: 'https://y.qq.com/',
   'User-Agent': UA,
 };
+const QISHUI_HEADERS = {
+  Referer: 'https://www.qishui.com/',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+};
+const QISHUI_API_BASE = 'https://api.qishui.com/luna/pc';
+const QISHUI_APP_API_BASE = 'https://api5-lq.qishui.com/luna';
+const QISHUI_PC_UA = 'LunaPC/3.3.0(359450208)';
 
 function requestText(targetUrl, opts, body) {
   opts = opts || {};
@@ -1777,6 +1875,859 @@ async function requestJson(targetUrl, opts, body) {
     err.cause = e;
     throw err;
   }
+}
+
+function qishuiUrl(pathname, params) {
+  const u = new URL(QISHUI_API_BASE + pathname);
+  Object.keys(params || {}).forEach(key => {
+    if (params[key] != null) u.searchParams.set(key, String(params[key]));
+  });
+  return u.toString();
+}
+
+function qishuiAppUrl(pathname, params) {
+  const u = new URL(QISHUI_APP_API_BASE + pathname);
+  Object.keys(params || {}).forEach(key => {
+    if (params[key] != null) u.searchParams.set(key, String(params[key]));
+  });
+  return u.toString();
+}
+
+function qishuiCookieObject() {
+  return parseCookieString(qishuiCookie);
+}
+
+function qishuiRequestHeaders(kind) {
+  const pc = kind === 'pc';
+  const app = kind === 'app';
+  const headers = {
+    ...QISHUI_HEADERS,
+    'User-Agent': pc ? QISHUI_PC_UA : (app
+      ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
+      : QISHUI_HEADERS['User-Agent']),
+  };
+  if (pc) {
+    headers['x-luna-background-type'] = 'foreground';
+    headers['x-luna-is-background-req'] = '0';
+    headers['x-luna-is-local-user'] = '1';
+  }
+  if (qishuiCookie) headers.Cookie = qishuiCookie;
+  return headers;
+}
+
+function qishuiPcAppParams(extra) {
+  return {
+    aid: '386088',
+    app_name: 'luna_pc',
+    region: 'cn',
+    geo_region: 'cn',
+    os_region: 'cn',
+    sim_region: '',
+    device_id: QISHUI_DEVICE_PARAMS.device_id,
+    cdid: '',
+    iid: QISHUI_DEVICE_PARAMS.iid,
+    version_name: '3.3.0',
+    version_code: '30030000',
+    channel: 'official',
+    build_mode: 'master',
+    network_carrier: '',
+    ac: 'wifi',
+    tz_name: 'Asia/Shanghai',
+    resolution: '',
+    device_platform: 'windows',
+    device_type: 'Windows',
+    os_version: 'Windows 11',
+    fp: QISHUI_DEVICE_PARAMS.fp,
+    ...(extra || {}),
+  };
+}
+
+function qishuiPcUrl(pathname, params) {
+  return qishuiUrl(pathname, qishuiPcAppParams(params));
+}
+
+function qishuiAppParams(extra) {
+  return {
+    aid: '386088',
+    app_name: 'luna',
+    region: 'cn',
+    geo_region: 'cn',
+    os_region: 'cn',
+    device_platform: 'web',
+    device_type: 'web',
+    os_version: 'macOS',
+    channel: 'pc_web',
+    version_name: '13.5.0',
+    version_code: '130500',
+    tz_name: 'Asia/Shanghai',
+    device_id: QISHUI_DEVICE_PARAMS.device_id,
+    iid: QISHUI_DEVICE_PARAMS.iid,
+    fp: QISHUI_DEVICE_PARAMS.fp,
+    ...(extra || {}),
+  };
+}
+
+function qishuiMobileUrl(pathname, params) {
+  return qishuiAppUrl(pathname, qishuiAppParams(params));
+}
+
+function qishuiImageUrl(image, suffix) {
+  let cover = '';
+  let uri = '';
+  if (typeof image === 'string') {
+    cover = image.trim();
+  } else {
+    const urls = image && Array.isArray(image.urls) ? image.urls : [];
+    cover = String(urls[0] || image && (image.url || image.uri) || '').trim();
+    uri = String((image && image.uri) || '').trim();
+  }
+  if (cover && uri && !cover.includes(uri) && !/^https?:\/\//i.test(uri)) cover += uri;
+  if (cover && suffix && !cover.includes('~') && !/[?#]/.test(cover)) cover += suffix;
+  return cover;
+}
+
+function qishuiStatusMessage(body, fallback) {
+  return String((body && body.status_info && body.status_info.status_msg) || body && body.message || fallback || '').trim();
+}
+
+function qishuiResponseOk(body) {
+  if (!body) return false;
+  return body.status_code == null || Number(body.status_code) === 0;
+}
+
+function mapQishuiProfile(body) {
+  const info = body && body.my_info || {};
+  const id = String(info.id || '').trim();
+  const nickname = String(info.public_name || info.nickname || '').trim();
+  return {
+    provider: 'qishui',
+    loggedIn: Number(body && body.status_code) === 0 && !!id,
+    hasCookie: !!qishuiCookie,
+    userId: id,
+    nickname: nickname || (id ? ('汽水 ' + id) : '汽水音乐'),
+    avatar: qishuiImageUrl(info.larger_avatar_url || info.avatar || info.avatar_url, '~c5_200x200.jpg'),
+    vipType: 0,
+    profileSource: 'qishui-me',
+  };
+}
+
+async function fetchQishuiLoginInfo(kind) {
+  const isPc = kind === 'pc';
+  const body = await requestJson(
+    isPc ? qishuiPcUrl('/me') : qishuiMobileUrl('/me'),
+    { headers: qishuiRequestHeaders(isPc ? 'pc' : 'app') },
+  );
+  if (Number(body && body.status_code) !== 0) {
+    return {
+      provider: 'qishui',
+      loggedIn: false,
+      hasCookie: true,
+      stale: true,
+      profileSource: isPc ? 'qishui-pc-me' : 'qishui-mobile-me',
+      statusCode: body && body.status_code,
+      message: qishuiStatusMessage(body, '汽水音乐登录已失效'),
+    };
+  }
+  const info = mapQishuiProfile(body);
+  info.profileSource = isPc ? 'qishui-pc-me' : 'qishui-mobile-me';
+  return info;
+}
+
+async function getQishuiLoginInfo() {
+  if (!qishuiCookie) return { provider: 'qishui', loggedIn: false, hasCookie: false };
+  let pcInfo = null;
+  try {
+    pcInfo = await fetchQishuiLoginInfo('pc');
+    if (pcInfo.loggedIn) return pcInfo;
+  } catch (e) {
+    console.warn('[QishuiLogin] status check failed:', e.message);
+    pcInfo = { provider: 'qishui', loggedIn: false, hasCookie: true, stale: true, message: e.message, profileSource: 'qishui-pc-me' };
+  }
+
+  try {
+    const mobileInfo = await fetchQishuiLoginInfo('mobile');
+    if (mobileInfo.loggedIn) return mobileInfo;
+    return {
+      ...mobileInfo,
+      pcMessage: pcInfo && pcInfo.message || '',
+      message: pcInfo && /ERR_REQUEST_FORBIDDEN/i.test(pcInfo.message || '')
+        ? '汽水网页登录成功，但该会话未获得音乐 PC 接口授权'
+        : (mobileInfo.message || pcInfo && pcInfo.message || '汽水音乐登录已失效'),
+    };
+  } catch (e) {
+    console.warn('[QishuiLogin] mobile status check failed:', e.message);
+    return {
+      ...(pcInfo || { provider: 'qishui', loggedIn: false, hasCookie: true }),
+      stale: true,
+      message: pcInfo && pcInfo.message || e.message,
+    };
+  }
+}
+
+function qishuiArtists(raw) {
+  return (Array.isArray(raw) ? raw : [])
+    .map(artist => ({
+      id: artist && artist.id || '',
+      name: artist && artist.name || '',
+    }))
+    .filter(artist => artist.name);
+}
+
+function qishuiLabelIsVip(label) {
+  label = label || {};
+  if (label.only_vip_download || label.only_vip_playable) return true;
+  if (Array.isArray(label.quality_only_vip_can_download) && label.quality_only_vip_can_download.length) return true;
+  if (Array.isArray(label.quality_only_vip_can_play) && label.quality_only_vip_can_play.length) return true;
+  const qualityMap = label.quality_map || {};
+  return Object.keys(qualityMap).some(key => {
+    const policy = qualityMap[key] || {};
+    return !!(
+      policy.play_detail && policy.play_detail.need_vip ||
+      policy.download_detail && policy.download_detail.need_vip
+    );
+  });
+}
+
+function qishuiDurationMs(track) {
+  const value = Number(track && track.duration) || 0;
+  return value > 0 && value < 10000 ? value * 1000 : value;
+}
+
+function qishuiTrackDurationSeconds(track) {
+  const ms = qishuiDurationMs(track);
+  return ms > 10000 ? Math.round(ms / 1000) : Math.round(ms || 0);
+}
+
+function mapQishuiTrack(track) {
+  track = track || {};
+  const album = track.album || {};
+  const artists = qishuiArtists(track.artists);
+  const id = String(track.id || '').trim();
+  return {
+    provider: 'qishui',
+    source: 'qishui',
+    type: 'qishui',
+    id,
+    qishuiId: id,
+    name: track.name || '',
+    artist: artists.map(artist => artist.name).join(' / '),
+    artists,
+    album: album.name || '',
+    albumId: album.id || '',
+    cover: qishuiImageUrl(album.url_cover, '~c5_375x375.jpg'),
+    duration: qishuiDurationMs(track),
+    fee: qishuiLabelIsVip(track.label_info) ? 1 : 0,
+    playable: true,
+  };
+}
+
+async function handleQishuiSearch(keywords, limit) {
+  const kw = String(keywords || '').trim();
+  if (!kw) return [];
+  const apiUrl = qishuiUrl('/search/track', {
+    q: kw,
+    cursor: 0,
+    search_method: 'input',
+    aid: '386088',
+    device_platform: 'web',
+    channel: 'pc_web',
+  });
+  const body = await requestJson(apiUrl, { headers: QISHUI_HEADERS });
+  const groups = Array.isArray(body && body.result_groups) ? body.result_groups : [];
+  const trackGroup = groups.find(group => group && group.id === 'tracks') || groups[0] || {};
+  const raw = Array.isArray(trackGroup.data) ? trackGroup.data : [];
+  const seen = new Set();
+  return raw
+    .map(item => mapQishuiTrack(item && item.entity && item.entity.track))
+    .filter(song => {
+      if (!song.id || !song.name || seen.has(song.id)) return false;
+      seen.add(song.id);
+      return true;
+    })
+    .slice(0, Math.max(1, Math.min(limit || 10, 20)));
+}
+
+function qishuiTrackV2Url(trackId) {
+  return qishuiUrl('/track_v2', {
+    track_id: trackId,
+    media_type: 'track',
+    aid: '386088',
+    device_platform: 'web',
+    channel: 'pc_web',
+  });
+}
+
+function qishuiPrimaryTrack(body) {
+  if (!body) return {};
+  if (body.track && body.track.id) return body.track;
+  return body.track_info || {};
+}
+
+async function fetchQishuiTrackV2(trackId) {
+  const id = String(trackId || '').trim();
+  if (!id) throw new Error('Missing Qishui track id');
+  const body = await requestJson(qishuiTrackV2Url(id), { headers: qishuiRequestHeaders('web') });
+  const code = Number(body && body.status_code) || 0;
+  if (code !== 0) {
+    const msg = body && body.status_info && body.status_info.status_msg || 'Qishui track_v2 failed';
+    throw new Error(msg);
+  }
+  return body;
+}
+
+function normalizeQishuiBitrate(value) {
+  const n = Number(value) || 0;
+  return n > 1000 ? Math.round(n / 1000) : n;
+}
+
+function qishuiQualityRank(info) {
+  info = info || {};
+  const quality = String(info.quality || info.Quality || '').toLowerCase().replace(/[-_\s]/g, '');
+  const format = String(info.format || info.Format || '').toLowerCase();
+  const bitrate = normalizeQishuiBitrate(info.bitrate || info.Bitrate);
+  const losslessFormat = /flac|alac|wav/.test(format);
+  if ((/hires|master/.test(quality)) && (losslessFormat || bitrate >= 900)) return 110;
+  if (/lossless|flac|sq|svip/.test(quality) || losslessFormat || bitrate >= 900) return 100;
+  if (/hires|master/.test(quality)) return 90;
+  if (/atmos|dolby|spatial/.test(quality)) return 88;
+  if (/highest|excellent|superhigh|hq/.test(quality)) return 80;
+  if (/higher|high|320/.test(quality) || bitrate >= 320) return 70;
+  if (/standard|medium|normal|128/.test(quality) || bitrate >= 128) return 50;
+  if (/low|preview/.test(quality)) return 10;
+  return bitrate > 0 ? 20 : 0;
+}
+
+function qishuiStreamDuration(info) {
+  const value = Number(info && (info.duration || info.Duration)) || 0;
+  return value > 1000 ? value / 1000 : value;
+}
+
+function qishuiStreamSize(info) {
+  return Number(info && (info.size || info.Size)) || 0;
+}
+
+function qishuiStreamPlayAuth(info) {
+  const encryptInfo = (info && (info.encrypt_info || info.EncryptInfo)) || {};
+  return String(
+    (info && (info.play_auth || info.PlayAuth || info.playAuth)) ||
+    encryptInfo.spade_a ||
+    encryptInfo.play_auth ||
+    encryptInfo.PlayAuth ||
+    '',
+  );
+}
+
+function qishuiBetterStream(a, b) {
+  if (!b) return true;
+  const aDuration = qishuiStreamDuration(a);
+  const bDuration = qishuiStreamDuration(b);
+  if (aDuration > bDuration + 1) return true;
+  if (bDuration > aDuration + 1) return false;
+  const aRank = qishuiQualityRank(a);
+  const bRank = qishuiQualityRank(b);
+  if (aRank !== bRank) return aRank > bRank;
+  const aBitrate = normalizeQishuiBitrate(a && (a.bitrate || a.Bitrate));
+  const bBitrate = normalizeQishuiBitrate(b && (b.bitrate || b.Bitrate));
+  if (aBitrate !== bBitrate) return aBitrate > bBitrate;
+  return qishuiStreamSize(a) > qishuiStreamSize(b);
+}
+
+function normalizeQishuiStream(info) {
+  if (!info) return null;
+  const url = String(info.main_play_url || info.MainPlayUrl || info.main_url || info.MainUrl || info.url || info.URL || '').trim();
+  const backup = String(info.backup_play_url || info.BackupPlayUrl || info.backup_url || info.BackupUrl || '').trim();
+  const streamUrl = url || backup;
+  if (!streamUrl) return null;
+  return {
+    url: streamUrl,
+    playAuth: qishuiStreamPlayAuth(info),
+    format: String(info.format || info.Format || ''),
+    size: qishuiStreamSize(info),
+    duration: qishuiStreamDuration(info),
+    bitrate: normalizeQishuiBitrate(info.bitrate || info.Bitrate),
+    quality: String(info.quality || info.Quality || ''),
+  };
+}
+
+function qishuiBestFromList(list) {
+  let best = null;
+  (Array.isArray(list) ? list : []).forEach(item => {
+    if (!normalizeQishuiStream(item)) return;
+    if (qishuiBetterStream(item, best)) best = item;
+  });
+  return normalizeQishuiStream(best);
+}
+
+function qishuiBestFromVideoModel(raw) {
+  if (!raw) return null;
+  let model = raw;
+  if (typeof model === 'string') {
+    try { model = JSON.parse(model); }
+    catch (e) { return null; }
+  }
+  const modelDuration = Number(model && model.video_duration) || 0;
+  const list = (Array.isArray(model && model.video_list) ? model.video_list : []).map(item => {
+    if (!item || item.duration || item.Duration || !modelDuration) return item;
+    return { ...item, duration: modelDuration };
+  });
+  return qishuiBestFromList(list);
+}
+
+async function fetchQishuiPlayerInfo(playerInfoUrl) {
+  if (!playerInfoUrl) return null;
+  const body = await requestJson(playerInfoUrl, { headers: qishuiRequestHeaders('web') });
+  const list = body && body.Result && body.Result.Data && body.Result.Data.PlayInfoList;
+  return qishuiBestFromList(list);
+}
+
+function qishuiDownloadInfoIsPreview(info, fullDurationSeconds) {
+  if (!info || !fullDurationSeconds || !info.duration) return false;
+  return info.duration + 1 < fullDurationSeconds;
+}
+
+async function resolveQishuiDownloadInfo(trackId, trackV2) {
+  const body = trackV2 || await fetchQishuiTrackV2(trackId);
+  const track = qishuiPrimaryTrack(body);
+  const fullDuration = qishuiTrackDurationSeconds(track);
+  let info = qishuiBestFromVideoModel(body && body.track_player && body.track_player.video_model);
+  if ((!info || qishuiDownloadInfoIsPreview(info, fullDuration)) && body && body.track_player && body.track_player.url_player_info) {
+    const playerInfo = await fetchQishuiPlayerInfo(body.track_player.url_player_info);
+    if (playerInfo) info = playerInfo;
+  }
+  if (!info || !info.url) throw new Error('QISHUI_URL_UNAVAILABLE');
+  info.preview = qishuiDownloadInfoIsPreview(info, fullDuration);
+  return info;
+}
+
+function qishuiAudioUrl(info) {
+  if (!info || !info.url) return '';
+  return info.playAuth ? info.url + '#auth=' + encodeURIComponent(info.playAuth) : info.url;
+}
+
+async function handleQishuiSongUrl(id) {
+  const trackId = String(id || '').trim();
+  if (!trackId) return { provider: 'qishui', url: '', playable: false, error: 'MISSING_ID', message: 'Missing Qishui track id' };
+  const body = await fetchQishuiTrackV2(trackId);
+  const track = qishuiPrimaryTrack(body);
+  const info = await resolveQishuiDownloadInfo(trackId, body);
+  return {
+    provider: 'qishui',
+    url: qishuiAudioUrl(info),
+    playable: true,
+    trial: !!info.preview,
+    level: info.quality || '',
+    quality: info.quality || info.format || '',
+    format: info.format || '',
+    bitrate: info.bitrate || 0,
+    duration: info.duration || qishuiTrackDurationSeconds(track),
+  };
+}
+
+function parseQishuiLyric(raw) {
+  return String(raw || '')
+    .split(/\r?\n/)
+    .map(line => {
+      const match = line.trim().match(/^\[(\d+),(\d+)\](.*)$/);
+      if (!match) return '';
+      const ms = Number(match[1]) || 0;
+      const text = match[3].replace(/<[^>]+>/g, '').trim();
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      const centis = Math.floor((ms % 1000) / 10);
+      return '[' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0') + '.' + String(centis).padStart(2, '0') + ']' + text;
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+async function handleQishuiLyric(id) {
+  const trackId = String(id || '').trim();
+  if (!trackId) return { provider: 'qishui', error: 'Missing Qishui track id', lyric: '' };
+  const body = await fetchQishuiTrackV2(trackId);
+  const raw = body && body.lyric && body.lyric.content || '';
+  return { provider: 'qishui', id: trackId, lyric: parseQishuiLyric(raw), yrc: '', source: 'qishui-track-v2' };
+}
+
+function mapQishuiPlaylist(raw, currentUser) {
+  raw = raw || {};
+  const owner = raw.owner || {};
+  const id = String(raw.id || '').trim();
+  const trackCount = Number(raw.count_tracks || raw.track_count || raw.resource_cnt && raw.resource_cnt.track_cnt || 0) || 0;
+  const ownerId = String(owner.id || owner.user_id || '').trim();
+  const currentUserId = String(currentUser && currentUser.userId || '').trim();
+  const subscribed = raw.subscribed != null
+    ? !!raw.subscribed
+    : (raw.is_collected != null ? !!raw.is_collected : (!!ownerId && !!currentUserId && ownerId !== currentUserId));
+  return {
+    provider: 'qishui',
+    source: 'qishui',
+    id,
+    name: raw.title || raw.public_title || id,
+    cover: qishuiImageUrl(raw.url_cover || raw.cover, '~c5_300x300.jpg'),
+    trackCount,
+    playCount: Number(raw.play_count || raw.stats && raw.stats.count_played || 0) || 0,
+    creator: owner.public_name || owner.nickname || currentUser && currentUser.nickname || '汽水音乐',
+    description: raw.desc || '',
+    subscribed,
+    specialType: 0,
+  };
+}
+
+async function collectQishuiUserPlaylists(info, mode) {
+  const playlists = [];
+  const seenPlaylists = new Set();
+  const seenCursors = new Set();
+  let cursor = '';
+  for (let page = 0; page < 20 && playlists.length < 200; page++) {
+    const params = {
+      user_id: info.userId,
+      cursor,
+      count: '100',
+    };
+    const body = await requestJson(
+      mode === 'pc' ? qishuiPcUrl('/user/playlist', params) : qishuiMobileUrl('/user/playlist', params),
+      { headers: qishuiRequestHeaders(mode === 'pc' ? 'pc' : 'app') },
+    );
+    if (!qishuiResponseOk(body)) {
+      throw new Error(qishuiStatusMessage(body, 'QISHUI_USER_PLAYLIST_FAILED'));
+    }
+    const raw = Array.isArray(body.playlists) ? body.playlists : [];
+    raw.forEach(item => {
+      const pl = mapQishuiPlaylist(item, info);
+      if (!pl.id || !pl.name || seenPlaylists.has(pl.id)) return;
+      seenPlaylists.add(pl.id);
+      playlists.push(pl);
+    });
+    const nextCursor = String(body.next_cursor || '').trim();
+    if (!nextCursor || nextCursor === cursor || seenCursors.has(nextCursor)) break;
+    if (body.has_more === false) break;
+    seenCursors.add(nextCursor);
+    cursor = nextCursor;
+  }
+  return playlists;
+}
+
+async function handleQishuiUserPlaylists() {
+  const info = await getQishuiLoginInfo();
+  if (!info.loggedIn || !info.userId) return { loggedIn: false, provider: 'qishui', playlists: [], message: info.message || '' };
+
+  try {
+    const playlists = await collectQishuiUserPlaylists(info, 'pc');
+    return { loggedIn: true, provider: 'qishui', userId: info.userId, playlists, playlistSource: 'qishui-pc-user-playlist' };
+  } catch (pcError) {
+    const playlists = await collectQishuiUserPlaylists(info, 'app');
+    return {
+      loggedIn: true,
+      provider: 'qishui',
+      userId: info.userId,
+      playlists,
+      playlistSource: 'qishui-mobile-user-playlist',
+      pcError: pcError.message || '',
+    };
+  }
+}
+
+function qishuiTrackFromPlaylistResource(resource) {
+  return resource && resource.entity && resource.entity.track_wrapper && resource.entity.track_wrapper.track ||
+    resource && resource.entity && resource.entity.track_wrapper && resource.entity.track_wrapper.track_info ||
+    resource && resource.entity && resource.entity.track ||
+    resource && resource.track_wrapper && resource.track_wrapper.track ||
+    resource && resource.track_wrapper && resource.track_wrapper.track_info ||
+    resource && resource.track ||
+    resource && resource.track_info ||
+    null;
+}
+
+async function collectQishuiPlaylistTracks(info, playlistId, mode) {
+  let playlist = null;
+  const tracks = [];
+  const seenTracks = new Set();
+  const seenCursors = new Set();
+  let cursor = '';
+  for (let page = 0; page < 20 && tracks.length < 1000; page++) {
+    const params = {
+      playlist_id: playlistId,
+      cursor,
+      count: '100',
+    };
+    const body = await requestJson(
+      mode === 'pc' ? qishuiPcUrl('/playlist/detail', params) : qishuiMobileUrl('/playlist/detail', params),
+      { headers: qishuiRequestHeaders(mode === 'pc' ? 'pc' : 'app') },
+    );
+    if (!qishuiResponseOk(body)) {
+      throw new Error(qishuiStatusMessage(body, 'QISHUI_PLAYLIST_DETAIL_FAILED'));
+    }
+    if (!playlist) playlist = mapQishuiPlaylist(body.playlist || { id: playlistId }, info);
+    const resources = Array.isArray(body.media_resources) ? body.media_resources : [];
+    resources.forEach(item => {
+      if (item && item.type && item.type !== 'track') return;
+      const track = qishuiTrackFromPlaylistResource(item);
+      const song = mapQishuiTrack(track);
+      if (!song.id || !song.name || seenTracks.has(song.id)) return;
+      seenTracks.add(song.id);
+      if (!song.cover && playlist && playlist.cover) song.cover = playlist.cover;
+      tracks.push(song);
+    });
+    const nextCursor = String(body.next_cursor || '').trim();
+    if (!nextCursor || nextCursor === cursor || seenCursors.has(nextCursor)) break;
+    if (body.has_more === false) break;
+    seenCursors.add(nextCursor);
+    cursor = nextCursor;
+  }
+  if (playlist && !playlist.trackCount) playlist.trackCount = tracks.length;
+  return { playlist, tracks };
+}
+
+async function handleQishuiPlaylistTracks(id) {
+  const info = await getQishuiLoginInfo();
+  if (!info.loggedIn || !info.userId) return { loggedIn: false, provider: 'qishui', tracks: [], message: info.message || '' };
+  const playlistId = String(id || '').trim();
+  if (!playlistId) return { loggedIn: true, provider: 'qishui', error: 'Missing Qishui playlist id', tracks: [] };
+
+  try {
+    const data = await collectQishuiPlaylistTracks(info, playlistId, 'pc');
+    return { loggedIn: true, provider: 'qishui', playlist: data.playlist, tracks: data.tracks, playlistSource: 'qishui-pc-playlist-detail' };
+  } catch (pcError) {
+    const data = await collectQishuiPlaylistTracks(info, playlistId, 'app');
+    return {
+      loggedIn: true,
+      provider: 'qishui',
+      playlist: data.playlist,
+      tracks: data.tracks,
+      playlistSource: 'qishui-mobile-playlist-detail',
+      pcError: pcError.message || '',
+    };
+  }
+}
+
+function splitQishuiAudioAuth(audioUrl) {
+  const raw = String(audioUrl || '');
+  const marker = '#auth=';
+  const idx = raw.indexOf(marker);
+  if (idx < 0) return { url: raw, playAuth: '' };
+  return {
+    url: raw.slice(0, idx),
+    playAuth: decodeURIComponent(raw.slice(idx + marker.length)),
+  };
+}
+
+function qishuiExtractAuthKey(playAuth) {
+  const bytes = Buffer.from(String(playAuth || ''), 'base64');
+  if (bytes.length < 3) throw new Error('Qishui auth data too short');
+  const paddingLen = (bytes[0] ^ bytes[1] ^ bytes[2]) - 48;
+  if (paddingLen < 0 || bytes.length < paddingLen + 2) throw new Error('Invalid Qishui auth padding');
+  const inner = bytes.subarray(1, bytes.length - paddingLen);
+  const decoded = Buffer.alloc(inner.length);
+  const work = Buffer.concat([Buffer.from([0xfa, 0x55]), inner]);
+  for (let i = 0; i < inner.length; i++) {
+    let value = (inner[i] ^ work[i]) - bitCount32(i) - 21;
+    while (value < 0) value += 255;
+    decoded[i] = value & 0xff;
+  }
+  const skipBytes = decodeBase36Byte(decoded[0]);
+  const end = 1 + (bytes.length - paddingLen - 2) - skipBytes;
+  if (end > decoded.length || end < 1) throw new Error('Invalid Qishui auth key bounds');
+  return Buffer.from(decoded.subarray(1, end).toString('utf8'), 'hex');
+}
+
+function bitCount32(value) {
+  let n = value >>> 0;
+  n -= (n >>> 1) & 0x55555555;
+  n = (n & 0x33333333) + ((n >>> 2) & 0x33333333);
+  return (((n + (n >>> 4)) & 0x0f0f0f0f) * 0x01010101) >>> 24;
+}
+
+function decodeBase36Byte(value) {
+  if (value >= 48 && value <= 57) return value - 48;
+  if (value >= 97 && value <= 122) return value - 87;
+  if (value >= 65 && value <= 90) return value - 55;
+  return 0xff;
+}
+
+function readMp4Box(data, offset, end) {
+  if (offset + 8 > end) return null;
+  let size = data.readUInt32BE(offset);
+  let headerSize = 8;
+  if (size === 1) {
+    if (offset + 16 > end) return null;
+    const bigSize = data.readBigUInt64BE(offset + 8);
+    if (bigSize > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+    size = Number(bigSize);
+    headerSize = 16;
+  }
+  if (size < headerSize || offset + size > end) return null;
+  return {
+    offset,
+    size,
+    headerSize,
+    type: data.subarray(offset + 4, offset + 8).toString('ascii'),
+    data: data.subarray(offset + headerSize, offset + size),
+  };
+}
+
+function findMp4Box(data, type, start, end) {
+  const limit = Math.min(end == null ? data.length : end, data.length);
+  let pos = Math.max(0, start || 0);
+  while (pos + 8 <= limit) {
+    const box = readMp4Box(data, pos, limit);
+    if (!box) break;
+    if (box.type === type) return box;
+    pos += box.size;
+  }
+  return null;
+}
+
+function mp4BoxChildStart(box) {
+  if (!box) return -1;
+  if (['moov', 'trak', 'mdia', 'minf', 'stbl', 'sinf', 'schi'].includes(box.type)) return box.offset + box.headerSize;
+  if (box.type === 'stsd') return box.offset + box.headerSize + 8;
+  if (['enca', 'mp4a', 'alac', 'fLaC'].includes(box.type)) return box.offset + box.headerSize + 28;
+  return -1;
+}
+
+function findMp4BoxDeep(data, type, start, end) {
+  const limit = Math.min(end == null ? data.length : end, data.length);
+  let pos = Math.max(0, start || 0);
+  while (pos + 8 <= limit) {
+    const box = readMp4Box(data, pos, limit);
+    if (!box) break;
+    if (box.type === type) return box;
+    const childStart = mp4BoxChildStart(box);
+    if (childStart >= 0 && childStart < box.offset + box.size) {
+      const found = findMp4BoxDeep(data, type, childStart, box.offset + box.size);
+      if (found) return found;
+    }
+    pos += box.size;
+  }
+  return null;
+}
+
+function parseMp4Stsz(data) {
+  if (!data || data.length < 12) return [];
+  const fixedSize = data.readUInt32BE(4);
+  const count = data.readUInt32BE(8);
+  const sizes = [];
+  for (let i = 0; i < count; i++) {
+    if (fixedSize) sizes.push(fixedSize);
+    else if (12 + i * 4 + 4 <= data.length) sizes.push(data.readUInt32BE(12 + i * 4));
+  }
+  return sizes;
+}
+
+function qishuiDefaultIvSize(mp4, start, end) {
+  const tenc = findMp4BoxDeep(mp4, 'tenc', start, end);
+  if (!tenc || tenc.data.length < 8) return 8;
+  const size = tenc.data[7];
+  return size === 8 || size === 16 ? size : 8;
+}
+
+function parseMp4Senc(data, ivSize) {
+  if (!data || data.length < 8) return [];
+  const flags = data.readUInt32BE(0) & 0x00ffffff;
+  const count = data.readUInt32BE(4);
+  const samples = [];
+  let offset = 8;
+  const hasSubsamples = (flags & 0x02) !== 0;
+  const size = ivSize === 16 ? 16 : 8;
+  for (let i = 0; i < count; i++) {
+    if (offset + size > data.length) break;
+    const sample = { iv: Buffer.from(data.subarray(offset, offset + size)), subsamples: [] };
+    offset += size;
+    if (hasSubsamples) {
+      if (offset + 2 > data.length) break;
+      const subCount = data.readUInt16BE(offset);
+      offset += 2;
+      for (let j = 0; j < subCount; j++) {
+        if (offset + 6 > data.length) break;
+        sample.subsamples.push({
+          clear: data.readUInt16BE(offset),
+          encrypted: data.readUInt32BE(offset + 2),
+        });
+        offset += 6;
+      }
+    }
+    samples.push(sample);
+  }
+  return samples;
+}
+
+function aesCtrCrypt(key, iv, input) {
+  const paddedIv = Buffer.alloc(16);
+  iv.copy(paddedIv, 0, 0, Math.min(iv.length, 16));
+  const cipher = crypto.createCipheriv('aes-128-ctr', key, paddedIv);
+  return Buffer.concat([cipher.update(input), cipher.final()]);
+}
+
+function decryptQishuiSample(key, chunk, sample) {
+  if (!sample || !sample.iv) return chunk;
+  if (!sample.subsamples.length) return aesCtrCrypt(key, sample.iv, chunk);
+  const output = Buffer.from(chunk);
+  const paddedIv = Buffer.alloc(16);
+  sample.iv.copy(paddedIv, 0, 0, Math.min(sample.iv.length, 16));
+  const cipher = crypto.createCipheriv('aes-128-ctr', key, paddedIv);
+  let pos = 0;
+  sample.subsamples.forEach(part => {
+    pos += Math.min(part.clear, Math.max(0, chunk.length - pos));
+    const encrypted = Math.min(part.encrypted, Math.max(0, chunk.length - pos));
+    if (encrypted > 0) cipher.update(chunk.subarray(pos, pos + encrypted)).copy(output, pos);
+    pos += encrypted;
+  });
+  cipher.final();
+  return output;
+}
+
+function encryptedSampleOriginalFormat(stsdData) {
+  const marker = stsdData.indexOf(Buffer.from('frma'));
+  if (marker < 4 || marker + 8 > stsdData.length) return Buffer.from('mp4a');
+  const size = stsdData.readUInt32BE(marker - 4);
+  if (size < 12 || marker - 4 + size > stsdData.length) return Buffer.from('mp4a');
+  return stsdData.subarray(marker + 4, marker + 8);
+}
+
+function decryptQishuiAudioBuffer(input, playAuth) {
+  const key = qishuiExtractAuthKey(playAuth);
+  if (key.length !== 16) throw new Error('Invalid Qishui AES key length');
+  const moov = findMp4Box(input, 'moov', 0, input.length);
+  if (!moov) throw new Error('Qishui audio moov box not found');
+  let stbl = findMp4Box(input, 'stbl', moov.offset, moov.offset + moov.size);
+  if (!stbl) stbl = findMp4BoxDeep(input, 'stbl', moov.offset + moov.headerSize, moov.offset + moov.size);
+  if (!stbl) throw new Error('Qishui audio stbl box not found');
+  const stsz = findMp4Box(input, 'stsz', stbl.offset + stbl.headerSize, stbl.offset + stbl.size);
+  if (!stsz) throw new Error('Qishui audio stsz box not found');
+  const senc = findMp4BoxDeep(input, 'senc', moov.offset + moov.headerSize, moov.offset + moov.size);
+  if (!senc) throw new Error('Qishui audio senc box not found');
+  const mdat = findMp4Box(input, 'mdat', 0, input.length);
+  if (!mdat) throw new Error('Qishui audio mdat box not found');
+
+  const sampleSizes = parseMp4Stsz(stsz.data);
+  const samples = parseMp4Senc(senc.data, qishuiDefaultIvSize(input, stbl.offset, stbl.offset + stbl.size));
+  const output = Buffer.from(input);
+  let readOffset = mdat.offset + mdat.headerSize;
+  for (let i = 0; i < sampleSizes.length; i++) {
+    const size = sampleSizes[i];
+    if (!size || readOffset + size > output.length) break;
+    const decrypted = decryptQishuiSample(key, output.subarray(readOffset, readOffset + size), samples[i]);
+    decrypted.copy(output, readOffset);
+    readOffset += size;
+  }
+
+  const stsd = findMp4Box(input, 'stsd', stbl.offset + stbl.headerSize, stbl.offset + stbl.size);
+  if (stsd) {
+    const stsdData = output.subarray(stsd.offset, stsd.offset + stsd.size);
+    const idx = stsdData.indexOf(Buffer.from('enca'));
+    if (idx >= 0) encryptedSampleOriginalFormat(stsdData).copy(stsdData, idx);
+  }
+  return output;
+}
+
+async function fetchBinary(targetUrl, headers) {
+  const response = await fetch(targetUrl, { headers: headers || {} });
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  return {
+    status: response.status,
+    contentType: response.headers.get('content-type') || '',
+    buffer: Buffer.from(await response.arrayBuffer()),
+  };
 }
 
 function clampNumber(value, min, max, fallback) {
@@ -2344,6 +3295,7 @@ function audioProxyHeadersFor(audioUrl, range) {
   try {
     const host = new URL(audioUrl).hostname.toLowerCase();
     if (host.includes('qq.com') || host.includes('qpic.cn')) headers.Referer = 'https://y.qq.com/';
+    else if (host.includes('qishui.com') || host.includes('douyin') || host.includes('douyinvod.com')) headers.Referer = 'https://www.qishui.com/';
   } catch (e) {}
   if (range) headers.Range = range;
   return headers;
@@ -3464,6 +4416,43 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pn === '/api/qishui/search') {
+    try {
+      const kw = url.searchParams.get('keywords') || '';
+      const limit = Math.max(4, Math.min(20, parseInt(url.searchParams.get('limit') || '10', 10) || 10));
+      const songs = await handleQishuiSearch(kw, limit);
+      sendJSON(res, { provider: 'qishui', songs });
+    } catch (err) {
+      console.error('[QishuiSearch]', err);
+      sendJSON(res, { provider: 'qishui', error: err.message, songs: [] }, 500);
+    }
+    return;
+  }
+
+  if (pn === '/api/qishui/song/url') {
+    try {
+      const id = url.searchParams.get('id') || url.searchParams.get('trackId') || '';
+      const info = await handleQishuiSongUrl(id);
+      sendJSON(res, info);
+    } catch (err) {
+      console.error('[QishuiSongUrl]', err);
+      sendJSON(res, { provider: 'qishui', url: '', playable: false, error: err.message }, 500);
+    }
+    return;
+  }
+
+  if (pn === '/api/qishui/lyric') {
+    try {
+      const id = url.searchParams.get('id') || url.searchParams.get('trackId') || '';
+      const data = await handleQishuiLyric(id);
+      sendJSON(res, data);
+    } catch (err) {
+      console.error('[QishuiLyric]', err);
+      sendJSON(res, { provider: 'qishui', error: err.message, lyric: '' }, 500);
+    }
+    return;
+  }
+
   // ---------- 歌曲URL ----------
   if (pn === '/api/qq/login/status') {
     try {
@@ -3521,6 +4510,73 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error('[QQPlaylistTracks]', err);
       sendJSON(res, { provider: 'qq', error: err.message, tracks: [] }, 500);
+    }
+    return;
+  }
+
+  if (pn === '/api/qishui/login/status') {
+    try {
+      const info = await getQishuiLoginInfo();
+      sendJSON(res, info);
+    } catch (err) {
+      console.error('[QishuiLoginStatus]', err);
+      sendJSON(res, { provider: 'qishui', loggedIn: false, error: err.message }, 500);
+    }
+    return;
+  }
+
+  if (pn === '/api/qishui/login/cookie') {
+    try {
+      const body = await readRequestBody(req);
+      const raw = body.cookie || body.data || body.text || '';
+      const normalized = normalizeCookieHeader(raw) || rawCookieFallback(raw);
+      if (!normalized) {
+        sendJSON(res, { provider: 'qishui', loggedIn: false, error: 'INVALID_QISHUI_COOKIE', message: '汽水 cookie 为空' }, 400);
+        return;
+      }
+      const previousCookie = qishuiCookie;
+      qishuiCookie = normalized;
+      const info = await getQishuiLoginInfo();
+      if (!info.loggedIn) {
+        qishuiCookie = previousCookie;
+        saveQishuiCookie(previousCookie);
+        sendJSON(res, { ...info, saved: false, error: info.message || 'QISHUI_COOKIE_INVALID' }, 400);
+        return;
+      }
+      saveQishuiCookie(normalized);
+      sendJSON(res, { ...info, saved: true });
+    } catch (err) {
+      console.error('[QishuiLoginCookie]', err);
+      sendJSON(res, { provider: 'qishui', loggedIn: false, error: err.message }, 500);
+    }
+    return;
+  }
+
+  if (pn === '/api/qishui/logout') {
+    saveQishuiCookie('');
+    sendJSON(res, { provider: 'qishui', ok: true, loggedIn: false });
+    return;
+  }
+
+  if (pn === '/api/qishui/user/playlists') {
+    try {
+      const data = await handleQishuiUserPlaylists();
+      sendJSON(res, data);
+    } catch (err) {
+      console.error('[QishuiUserPlaylists]', err);
+      sendJSON(res, { provider: 'qishui', loggedIn: false, error: err.message, playlists: [] }, 500);
+    }
+    return;
+  }
+
+  if (pn === '/api/qishui/playlist/tracks') {
+    try {
+      const id = url.searchParams.get('id') || url.searchParams.get('playlistId') || '';
+      const data = await handleQishuiPlaylistTracks(id);
+      sendJSON(res, data);
+    } catch (err) {
+      console.error('[QishuiPlaylistTracks]', err);
+      sendJSON(res, { provider: 'qishui', error: err.message, tracks: [] }, 500);
     }
     return;
   }
@@ -4164,6 +5220,20 @@ const server = http.createServer(async (req, res) => {
     try {
       const audioUrl = url.searchParams.get('url');
       if (!audioUrl) { res.writeHead(400); res.end('Missing url'); return; }
+      const qishuiAuth = splitQishuiAudioAuth(audioUrl);
+      if (qishuiAuth.playAuth) {
+        const hdr = audioProxyHeadersFor(qishuiAuth.url, '');
+        const up = await fetchBinary(qishuiAuth.url, hdr);
+        const decrypted = decryptQishuiAudioBuffer(up.buffer, qishuiAuth.playAuth);
+        res.writeHead(200, {
+          'Content-Type': audioContentTypeForUrl(qishuiAuth.url, up.contentType || 'audio/mp4'),
+          'Access-Control-Allow-Origin': '*',
+          'Accept-Ranges': 'none',
+          'Content-Length': decrypted.length,
+        });
+        res.end(decrypted);
+        return;
+      }
       const range = req.headers.range || '';
       const hdr = audioProxyHeadersFor(audioUrl, range);
       const up = await fetch(audioUrl, { headers: hdr });

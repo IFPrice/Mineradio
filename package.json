@@ -9,7 +9,12 @@
   "scripts": {
     "start": "electron .",
     "build:win": "electron-builder --win nsis",
-    "build:win:dir": "electron-builder --win dir"
+    "build:win:dir": "electron-builder --win dir",
+    "prepare:mac": "bash build/macos/prepare.sh",
+    "build:mac": "npm run prepare:mac && electron-builder --mac",
+    "build:mac:dir": "npm run prepare:mac && electron-builder --mac dir",
+    "build:mac:x64": "npm run prepare:mac && electron-builder --mac dmg zip --x64",
+    "build:mac:arm64": "npm run prepare:mac && electron-builder --mac dmg zip --arm64"
   },
   "build": {
     "appId": "com.mineradio.desktop",
@@ -67,7 +72,49 @@
         "owner": "XxHuberrr",
         "repo": "Mineradio"
       }
-    ]
+    ],
+    "mac": {
+      "category": "public.app-category.music",
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Mineradio-${version}-mac-${arch}.${ext}",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/macos/entitlements.mac.plist",
+      "entitlementsInherit": "build/macos/entitlements.mac.plist",
+      "extendInfo": {
+        "NSHighResolutionCapable": true,
+        "NSRequiresAquaSystemAppearance": false,
+        "NSHumanReadableCopyright": "Copyright © 2026 XxHuberrr. GPL-3.0 source port for macOS."
+      },
+      "extraResources": [
+        {
+          "from": "build/macos/bin/mineradio-middle-click-helper",
+          "to": "bin/mineradio-middle-click-helper"
+        }
+      ],
+      "minimumSystemVersion": "13.0"
+    },
+    "dmg": {
+      "title": "Mineradio ${version}",
+      "artifactName": "Mineradio-${version}-mac-${arch}.${ext}",
+      "sign": false
+    }
   },
   "mineradio": {
     "update": {
@@ -89,7 +136,7 @@
     "NeteaseCloudMusicApi": "^4.32.0"
   },
   "devDependencies": {
-    "electron": "^42.4.1",
+    "electron": "38.6.0",
     "electron-builder": "^26.15.3",
     "rcedit": "^5.0.2"
   }

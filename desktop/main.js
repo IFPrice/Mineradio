@@ -32,28 +32,48 @@ const MIN_WINDOWED_HEIGHT = 540;
 const APP_NAME = 'Mineradio';
 const APP_USER_MODEL_ID = 'com.mineradio.desktop';
 const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico');
+const APP_ICON_PNG = path.join(__dirname, '..', 'build', 'icon.png'); // [macOS port]
+const APP_WINDOW_ICON = process.platform === 'darwin' ? APP_ICON_PNG : APP_ICON_ICO;
+const MAC_MIDDLE_CLICK_HELPER = app.isPackaged
+  ? path.join(process.resourcesPath, 'bin', 'mineradio-middle-click-helper')
+  : path.join(__dirname, '..', 'build', 'macos', 'bin', 'mineradio-middle-click-helper');
 const NETEASE_LOGIN_PARTITION = 'persist:mineradio-netease-login';
 const NETEASE_LOGIN_URL = 'https://music.163.com/#/login';
 const QQ_LOGIN_PARTITION = 'persist:mineradio-qqmusic-login';
 const QQ_LOGIN_URL = 'https://y.qq.com/n/ryqq/profile';
+const QISHUI_LOGIN_PARTITION = 'persist:mineradio-qishui-login';
+const QISHUI_LOGIN_URL = 'https://bubble.qishui.com/';
+const ELECTRON_MAJOR = String(process.versions.electron || 'unknown').split('.')[0] || 'unknown';
 
 const CHROMIUM_PERFORMANCE_SWITCHES = [
   ['autoplay-policy', 'no-user-gesture-required'],
-  ['ignore-gpu-blocklist'],
-  ['enable-gpu-rasterization'],
-  ['enable-oop-rasterization'],
-  ['enable-zero-copy'],
-  ['enable-accelerated-2d-canvas'],
-  ['disable-background-timer-throttling'],
-  ['disable-renderer-backgrounding'],
-  ['disable-backgrounding-occluded-windows'],
-  ['force_high_performance_gpu'],
-  ['use-angle', 'd3d11'],
 ];
+if (process.platform === 'darwin') {
+  // macOS 26 can crash in Electron's Chromium network watcher during early requests.
+  // Use the system resolver on macOS.
+  CHROMIUM_PERFORMANCE_SWITCHES.push(['disable-async-dns']);
+}
+if (process.platform === 'win32') {
+  CHROMIUM_PERFORMANCE_SWITCHES.push(
+    ['ignore-gpu-blocklist'],
+    ['enable-gpu-rasterization'],
+    ['enable-oop-rasterization'],
+    ['enable-zero-copy'],
+    ['enable-accelerated-2d-canvas'],
+    ['disable-background-timer-throttling'],
+    ['disable-renderer-backgrounding'],
+    ['disable-backgrounding-occluded-windows'],
+    ['force_high_performance_gpu'],
+    ['use-angle', 'd3d11'],
+  );
+}
 for (const [name, value] of CHROMIUM_PERFORMANCE_SWITCHES) {
   if (value == null) app.commandLine.appendSwitch(name);
   else app.commandLine.appendSwitch(name, value);
 }
+
+resetMacChromiumStateIfNeeded();
+
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
 const QQ_LOGIN_COOKIE_PRIORITY = [
@@ -89,6 +109,27 @@ const NETEASE_LOGIN_COOKIE_PRIORITY = [
   'WNMCID',
   'JSESSIONID-WYYY',
 ];
+const QISHUI_LOGIN_COOKIE_PRIORITY = [
+  'sessionid',
+  'sessionid_ss',
+  'sid_tt',
+  'sid_guard',
+  'uid_tt',
+  'uid_tt_ss',
+  'passport_auth_status',
+  'passport_auth_status_ss',
+  'passport_csrf_token',
+  'passport_csrf_token_default',
+  'odin_tt',
+  'n_mh',
+  'sid_ucp_v1',
+  'ssid_ucp_v1',
+  'csrf_session_id',
+  'ttwid',
+  'msToken',
+  'store-region',
+  'store-region-src',
+];
 
 function findOpenPort(startPort) {
   return new Promise((resolve, reject) => {
@@ -121,6 +162,167 @@ function waitForServer(server) {
     server.once('listening', resolve);
     server.once('error', reject);
   });
+}
+
+function localServerIsRunning() {
+  if (!localServer) return false;
+  if (localServer.listening) return true;
+  return Boolean(localServer.pid && localServer.exitCode == null && !localServer.killed);
+}
+
+function waitForPort(host, port, timeoutMs = 10000) {
+  const startedAt = Date.now();
+
+  return new Promise((resolve, reject) => {
+    function tryConnect() {
+      const socket = net.createConnection({ host, port });
+      let settled = false;
+
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
+        socket.removeAllListeners();
+        socket.destroy();
+        if (!error) {
+          resolve();
+          return;
+        }
+        if (Date.now() - startedAt >= timeoutMs) {
+          reject(error);
+          return;
+        }
+        setTimeout(tryConnect, 120);
+      };
+
+      socket.setTimeout(800);
+      socket.once('connect', () => finish());
+      socket.once('timeout', () => finish(new Error(`等待本地服务超时: ${host}:${port}`)));
+      socket.once('error', (error) => finish(error));
+    }
+
+    tryConnect();
+  });
+}
+
+function getLocalServerRuntime(serverPath) {
+  const configuredNode = process.env.MINERADIO_NODE_BIN || process.env.npm_node_execpath;
+  if (configuredNode) {
+    return { command: configuredNode, args: [serverPath], env: {} };
+  }
+  if (!app.isPackaged) {
+    return { command: 'node', args: [serverPath], env: {} };
+  }
+  return {
+    command: process.execPath,
+    args: [serverPath],
+    env: { ELECTRON_RUN_AS_NODE: '1' },
+  };
+}
+
+function startLocalServerProcess(serverPath, port) {
+  const runtime = getLocalServerRuntime(serverPath);
+  const child = spawn(runtime.command, runtime.args, {
+    cwd: path.join(__dirname, '..'),
+    env: {
+      ...process.env,
+      ...runtime.env,
+      HOST: '127.0.0.1',
+      PORT: String(port),
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  child.stdout.on('data', (chunk) => process.stdout.write(chunk));
+  child.stderr.on('data', (chunk) => process.stderr.write(chunk));
+  child.on('error', (error) => {
+    console.error('本地 API 服务启动失败:', error.message);
+  });
+  child.on('exit', (code, signal) => {
+    if (localServer === child) {
+      localServer = null;
+      mainServerPort = 0;
+    }
+    if (code !== 0 && signal !== 'SIGTERM') {
+      console.error(`本地 API 服务已退出: code=${code ?? 'null'} signal=${signal ?? 'null'}`);
+    }
+  });
+
+  return child;
+}
+
+function stopLocalServer() {
+  if (!localServer) return;
+  const server = localServer;
+  localServer = null;
+  mainServerPort = 0;
+
+  if (server.close) {
+    try { server.close(); } catch (e) {}
+    return;
+  }
+  if (server.kill && !server.killed) {
+    try { server.kill('SIGTERM'); } catch (e) {}
+  }
+}
+
+function resetMacChromiumStateIfNeeded() {
+  if (process.platform !== 'darwin') return;
+  if (process.env.MINERADIO_SKIP_CHROMIUM_STATE_RESET === '1') return;
+
+  const userDataDir = app.getPath('userData');
+  const marker = path.join(userDataDir, `.chromium-state-reset-e${ELECTRON_MAJOR}`);
+  if (fs.existsSync(marker)) return;
+
+  const backupDir = path.join(userDataDir, `.chromium-state-backup-e${ELECTRON_MAJOR}-${Date.now()}`);
+  const volatileItems = [
+    'Cache',
+    'Code Cache',
+    'GPUCache',
+    'DawnGraphiteCache',
+    'DawnWebGPUCache',
+    'blob_storage',
+    'Session Storage',
+    'Local Storage',
+    'IndexedDB',
+    'Shared Dictionary',
+    'SharedStorage',
+    'SharedStorage-wal',
+    'Trust Tokens',
+    'Trust Tokens-journal',
+    'DIPS',
+    'DIPS-wal',
+    'Cookies',
+    'Cookies-journal',
+    'Network Persistent State',
+    'TransportSecurity',
+    'QuotaManager',
+    'QuotaManager-journal',
+    'Partitions',
+  ];
+
+  let moved = 0;
+  for (const item of volatileItems) {
+    const src = path.join(userDataDir, item);
+    if (!fs.existsSync(src)) continue;
+    try {
+      fs.mkdirSync(backupDir, { recursive: true });
+      fs.renameSync(src, path.join(backupDir, item));
+      moved += 1;
+    } catch (error) {
+      console.warn('Chromium state backup skipped:', item, error.message);
+    }
+  }
+
+  try {
+    fs.writeFileSync(marker, JSON.stringify({
+      electron: process.versions.electron,
+      moved,
+      backupDir: moved ? backupDir : '',
+      at: new Date().toISOString(),
+    }, null, 2));
+  } catch (error) {
+    console.warn('Chromium state marker write failed:', error.message);
+  }
 }
 
 function sendWindowState(win) {
@@ -349,6 +551,11 @@ function neteaseCookieHasLogin(cookieText) {
   return !!obj.MUSIC_U;
 }
 
+function qishuiCookieHasLogin(cookieText) {
+  const obj = parseCookieHeader(cookieText);
+  return !!(obj.sessionid || obj.sessionid_ss || obj.sid_tt || obj.sid_guard);
+}
+
 function isQQCookieDomain(domain) {
   const normalized = String(domain || '').replace(/^\./, '').toLowerCase();
   return normalized === 'qq.com' || normalized.endsWith('.qq.com') || normalized.endsWith('qqmusic.qq.com');
@@ -359,6 +566,23 @@ function isNeteaseCookieDomain(domain) {
   return normalized === '163.com' || normalized.endsWith('.163.com') ||
     normalized === 'music.163.com' || normalized.endsWith('.music.163.com') ||
     normalized === 'netease.com' || normalized.endsWith('.netease.com');
+}
+
+function isQishuiCookieDomain(domain) {
+  const normalized = String(domain || '').replace(/^\./, '').toLowerCase();
+  return normalized === 'qishui.com' || normalized.endsWith('.qishui.com') ||
+    normalized === 'douyin.com' || normalized.endsWith('.douyin.com') ||
+    normalized === 'bytedance.com' || normalized.endsWith('.bytedance.com') ||
+    normalized === 'snssdk.com' || normalized.endsWith('.snssdk.com');
+}
+
+function qishuiCookieDomainRank(domain) {
+  const normalized = String(domain || '').replace(/^\./, '').toLowerCase();
+  if (normalized === 'qishui.com' || normalized.endsWith('.qishui.com')) return 0;
+  if (normalized === 'douyin.com' || normalized.endsWith('.douyin.com')) return 1;
+  if (normalized === 'bytedance.com' || normalized.endsWith('.bytedance.com')) return 2;
+  if (normalized === 'snssdk.com' || normalized.endsWith('.snssdk.com')) return 3;
+  return 9;
 }
 
 function buildCookieHeaderFor(cookies, isAllowedDomain, priority) {
@@ -387,6 +611,30 @@ function buildCookieHeader(cookies) {
   return buildCookieHeaderFor(cookies, isQQCookieDomain, QQ_LOGIN_COOKIE_PRIORITY);
 }
 
+function buildQishuiCookieHeader(cookies) {
+  const picked = new Map();
+  (cookies || [])
+    .filter((cookie) => cookie && cookie.name && isQishuiCookieDomain(cookie.domain))
+    .sort((a, b) => qishuiCookieDomainRank(a.domain) - qishuiCookieDomainRank(b.domain))
+    .forEach((cookie) => {
+      if (!picked.has(cookie.name)) picked.set(cookie.name, cookie.value || '');
+    });
+
+  const ordered = [];
+  QISHUI_LOGIN_COOKIE_PRIORITY.forEach((name) => {
+    if (picked.has(name)) {
+      ordered.push([name, picked.get(name)]);
+      picked.delete(name);
+    }
+  });
+  picked.forEach((value, name) => ordered.push([name, value]));
+
+  return ordered
+    .filter(([name, value]) => name && value != null && String(value) !== '')
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+}
+
 async function readQQLoginCookieHeader(cookieSession) {
   const cookies = await cookieSession.cookies.get({});
   return buildCookieHeader(cookies);
@@ -395,6 +643,11 @@ async function readQQLoginCookieHeader(cookieSession) {
 async function readNeteaseLoginCookieHeader(cookieSession) {
   const cookies = await cookieSession.cookies.get({});
   return buildCookieHeaderFor(cookies, isNeteaseCookieDomain, NETEASE_LOGIN_COOKIE_PRIORITY);
+}
+
+async function readQishuiLoginCookieHeader(cookieSession) {
+  const cookies = await cookieSession.cookies.get({});
+  return buildQishuiCookieHeader(cookies);
 }
 
 async function openNeteaseMusicLoginWindow(owner) {
@@ -417,7 +670,7 @@ async function openNeteaseMusicLoginWindow(owner) {
       autoHideMenuBar: true,
       title: '网易云音乐登录',
       backgroundColor: '#111111',
-      icon: APP_ICON_ICO,
+      icon: APP_WINDOW_ICON,
       webPreferences: {
         partition: NETEASE_LOGIN_PARTITION,
         contextIsolation: true,
@@ -519,7 +772,7 @@ async function openQQMusicLoginWindow(owner) {
       autoHideMenuBar: true,
       title: 'QQ 音乐登录',
       backgroundColor: '#111111',
-      icon: APP_ICON_ICO,
+      icon: APP_WINDOW_ICON,
       webPreferences: {
         partition: QQ_LOGIN_PARTITION,
         contextIsolation: true,
@@ -600,6 +853,107 @@ async function openQQMusicLoginWindow(owner) {
   });
 }
 
+async function openQishuiMusicLoginWindow(owner) {
+  const cookieSession = session.fromPartition(QISHUI_LOGIN_PARTITION);
+  const initialCookie = await readQishuiLoginCookieHeader(cookieSession);
+  if (qishuiCookieHasLogin(initialCookie)) return { ok: true, cookie: initialCookie, reused: true };
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let pollTimer = null;
+
+    const loginWindow = new BrowserWindow({
+      width: 940,
+      height: 760,
+      minWidth: 780,
+      minHeight: 580,
+      parent: owner && !owner.isDestroyed() ? owner : undefined,
+      modal: false,
+      show: false,
+      autoHideMenuBar: true,
+      title: '汽水音乐登录',
+      backgroundColor: '#111111',
+      icon: APP_WINDOW_ICON,
+      webPreferences: {
+        partition: QISHUI_LOGIN_PARTITION,
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+
+    const finish = async (result) => {
+      if (settled) return;
+      settled = true;
+      if (pollTimer) clearInterval(pollTimer);
+      if (loginWindow && !loginWindow.isDestroyed()) {
+        loginWindow.close();
+      }
+      resolve(result);
+    };
+
+    const checkCookies = async () => {
+      try {
+        const cookie = await readQishuiLoginCookieHeader(cookieSession);
+        if (qishuiCookieHasLogin(cookie)) {
+          finish({ ok: true, cookie });
+        }
+      } catch (e) {
+        console.warn('Qishui login cookie check failed:', e.message);
+      }
+    };
+
+    loginWindow.webContents.setWindowOpenHandler(({ url }) => {
+      if (/^https?:\/\/([^/]+\.)?(qishui|douyin|bytedance|snssdk)\.com/i.test(url)) {
+        loginWindow.loadURL(url).catch((e) => console.warn('Qishui login popup navigation failed:', e.message));
+      } else if (/^https?:\/\//i.test(url)) {
+        shell.openExternal(url).catch(() => {});
+      }
+      return { action: 'deny' };
+    });
+
+    loginWindow.webContents.on('did-finish-load', () => {
+      checkCookies();
+      loginWindow.webContents.executeJavaScript(`
+        setTimeout(() => {
+          const docs = [document];
+          document.querySelectorAll('iframe').forEach((frame) => {
+            try { if (frame.contentDocument) docs.push(frame.contentDocument); } catch (_) {}
+          });
+          for (const doc of docs) {
+            const nodes = Array.from(doc.querySelectorAll('a, button, span, div'));
+            const loginNode = nodes.find((node) => {
+              const text = (node.textContent || '').trim();
+              if (!/登录|登陆|扫一扫|扫码|验证码/.test(text)) return false;
+              const rect = node.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0;
+            });
+            if (loginNode) { loginNode.click(); return true; }
+          }
+          return false;
+        }, 700);
+      `, true).catch(() => {});
+    });
+
+    loginWindow.on('ready-to-show', () => loginWindow.show());
+    loginWindow.on('closed', async () => {
+      if (settled) return;
+      if (pollTimer) clearInterval(pollTimer);
+      try {
+        const cookie = await readQishuiLoginCookieHeader(cookieSession);
+        resolve(qishuiCookieHasLogin(cookie)
+          ? { ok: true, cookie }
+          : { ok: false, cancelled: true, message: '汽水音乐登录窗口已关闭' });
+      } catch (e) {
+        resolve({ ok: false, error: e.message || '汽水音乐登录窗口已关闭' });
+      }
+    });
+
+    pollTimer = setInterval(checkCookies, 1200);
+    loginWindow.loadURL(QISHUI_LOGIN_URL).catch((e) => finish({ ok: false, error: e.message }));
+  });
+}
+
 async function clearQQMusicLoginSession() {
   const cookieSession = session.fromPartition(QQ_LOGIN_PARTITION);
   await cookieSession.clearStorageData({
@@ -610,6 +964,14 @@ async function clearQQMusicLoginSession() {
 
 async function clearNeteaseMusicLoginSession() {
   const cookieSession = session.fromPartition(NETEASE_LOGIN_PARTITION);
+  await cookieSession.clearStorageData({
+    storages: ['cookies', 'localstorage', 'indexdb', 'cachestorage'],
+  });
+  return { ok: true };
+}
+
+async function clearQishuiMusicLoginSession() {
+  const cookieSession = session.fromPartition(QISHUI_LOGIN_PARTITION);
   await cookieSession.clearStorageData({
     storages: ['cookies', 'localstorage', 'indexdb', 'cachestorage'],
   });
@@ -810,34 +1172,11 @@ function handleDesktopLyricsGlobalMiddleClick() {
   broadcastDesktopLyricsLockState();
 }
 
-function startDesktopLyricsMousePoller() {
-  if (process.platform !== 'win32' || desktopLyricsMousePoller) return;
-  const script = `
-$ErrorActionPreference = "SilentlyContinue"
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public class MineradioMousePoll {
-  [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
-}
-"@
-$prev = $false
-while ($true) {
-  $down = (([MineradioMousePoll]::GetAsyncKeyState(4) -band 0x8000) -ne 0)
-  if ($down -and -not $prev) {
-    [Console]::Out.WriteLine("MMB")
-    [Console]::Out.Flush()
-  }
-  $prev = $down
-  Start-Sleep -Milliseconds 24
-}
-`;
-  try {
-    desktopLyricsMousePoller = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], {
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    desktopLyricsMousePoller.stdout.on('data', (chunk) => {
+function attachDesktopLyricsMousePoller(child) {
+  desktopLyricsMousePoller = child;
+  desktopLyricsMousePollerBuffer = '';
+  if (child.stdout) {
+    child.stdout.on('data', (chunk) => {
       desktopLyricsMousePollerBuffer += chunk.toString('utf8');
       const lines = desktopLyricsMousePollerBuffer.split(/\r?\n/);
       desktopLyricsMousePollerBuffer = lines.pop() || '';
@@ -845,18 +1184,66 @@ while ($true) {
         if (line.trim() === 'MMB') handleDesktopLyricsGlobalMiddleClick();
       });
     });
-    desktopLyricsMousePoller.on('exit', () => {
-      desktopLyricsMousePoller = null;
-      desktopLyricsMousePollerBuffer = '';
-    });
-    desktopLyricsMousePoller.on('error', () => {
-      desktopLyricsMousePoller = null;
-      desktopLyricsMousePollerBuffer = '';
-    });
-  } catch (e) {
-    desktopLyricsMousePoller = null;
-    desktopLyricsMousePollerBuffer = '';
   }
+  if (child.stderr) {
+    child.stderr.on('data', (chunk) => {
+      const message = chunk.toString('utf8').trim();
+      if (message) console.warn('Desktop lyrics mouse helper:', message);
+    });
+  }
+  child.on('exit', () => {
+    if (desktopLyricsMousePoller === child) desktopLyricsMousePoller = null;
+    desktopLyricsMousePollerBuffer = '';
+  });
+  child.on('error', (error) => {
+    console.warn('Desktop lyrics mouse helper failed:', error.message);
+    if (desktopLyricsMousePoller === child) desktopLyricsMousePoller = null;
+    desktopLyricsMousePollerBuffer = '';
+  });
+}
+
+function startDesktopLyricsMousePoller() {
+  if (desktopLyricsMousePoller) return;
+  let child = null;
+
+  if (process.platform === 'win32') {
+    const script = [
+      '$ErrorActionPreference = "SilentlyContinue"',
+      'Add-Type @"',
+      'using System;',
+      'using System.Runtime.InteropServices;',
+      'public class MineradioMousePoll {',
+      '  [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);',
+      '}',
+      '"@',
+      '$prev = $false',
+      'while ($true) {',
+      '  $down = (([MineradioMousePoll]::GetAsyncKeyState(4) -band 0x8000) -ne 0)',
+      '  if ($down -and -not $prev) {',
+      '    [Console]::Out.WriteLine("MMB")',
+      '    [Console]::Out.Flush()',
+      '  }',
+      '  $prev = $down',
+      '  Start-Sleep -Milliseconds 24',
+      '}',
+    ].join('\n');
+    child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], {
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } else if (process.platform === 'darwin') {
+    if (!fs.existsSync(MAC_MIDDLE_CLICK_HELPER)) {
+      console.warn('Desktop lyrics middle-click helper is missing:', MAC_MIDDLE_CLICK_HELPER);
+      return;
+    }
+    child = spawn(MAC_MIDDLE_CLICK_HELPER, [], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } else {
+    return;
+  }
+
+  attachDesktopLyricsMousePoller(child);
 }
 
 function stopDesktopLyricsMousePoller() {
@@ -918,6 +1305,11 @@ function createDesktopLyricsWindow(payload = {}) {
   }
 
   desktopLyricsWindow = new BrowserWindow({
+    ...(process.platform === 'darwin' ? {
+      type: 'panel', // [macOS port]
+      hiddenInMissionControl: false,
+      acceptFirstMouse: true,
+    } : {}),
     width: 920,
     height: 190,
     frame: false,
@@ -1049,6 +1441,11 @@ function createWallpaperWindow(payload = {}) {
   const bounds = screen.getPrimaryDisplay().bounds;
   wallpaperWindow = new BrowserWindow({
     ...bounds,
+    ...(process.platform === 'darwin' ? {
+      type: 'desktop', // [macOS port]
+      hiddenInMissionControl: true,
+      fullscreenable: false,
+    } : {}),
     frame: false,
     transparent: false,
     backgroundColor: '#050608',
@@ -1067,6 +1464,17 @@ function createWallpaperWindow(payload = {}) {
       backgroundThrottling: false,
     },
   });
+  if (process.platform === 'darwin') {
+    try {
+      wallpaperWindow.setVisibleOnAllWorkspaces(true, {
+        visibleOnFullScreen: true,
+        skipTransformProcessType: true,
+      });
+      wallpaperWindow.setHiddenInMissionControl(true);
+    } catch (e) {
+      console.warn('macOS wallpaper workspace setup skipped:', e.message);
+    }
+  }
   wallpaperWindow.setIgnoreMouseEvents(true, { forward: true });
   wallpaperWindow.once('ready-to-show', () => {
     if (!wallpaperWindow || wallpaperWindow.isDestroyed()) return;
@@ -1117,8 +1525,19 @@ ipcMain.handle('desktop-window-get-state', (event) => {
   return getWindowState(getSenderWindow(event));
 });
 
+// [macOS close lifecycle fix v1]
 ipcMain.handle('desktop-window-close', (event) => {
-  getSenderWindow(event)?.close();
+  const win = getSenderWindow(event);
+
+  // Mineradio 使用的是自绘“关闭应用”按钮。Windows 上关闭最后一个窗口会退出；
+  // macOS 原逻辑却只销毁窗口并留下 Dock 进程，行为不一致。
+  if (process.platform === 'darwin') {
+    app.quit();
+    return { ok: true, quitting: true };
+  }
+
+  win?.close();
+  return { ok: true, quitting: false };
 });
 
 ipcMain.handle('mineradio-hotkeys-configure-global', (_event, bindings) => {
@@ -1174,6 +1593,14 @@ ipcMain.handle('qq-music-open-login', async (event) => {
 
 ipcMain.handle('qq-music-clear-login', async () => {
   return clearQQMusicLoginSession();
+});
+
+ipcMain.handle('qishui-music-open-login', async (event) => {
+  return openQishuiMusicLoginWindow(getSenderWindow(event));
+});
+
+ipcMain.handle('qishui-music-clear-login', async () => {
+  return clearQishuiMusicLoginSession();
 });
 
 ipcMain.handle('mineradio-open-update-installer', async (_event, filePath) => {
@@ -1320,14 +1747,27 @@ ipcMain.handle('mineradio-wallpaper-update', async (_event, payload) => {
 async function createWindow() {
   htmlFullscreenActive = false;
   windowFullscreenActive = false;
-  const port = await findOpenPort(3000);
-  mainServerPort = port;
+  // [macOS close lifecycle fix v1]: 一个主进程只启动一个本地服务。
+  // macOS 用 Command+W 关闭窗口后，Dock 再激活应用时复用原端口；
+  // 否则 require(server.js) 会返回旧缓存，而新窗口却加载一个没有服务的新端口。
+  let port = mainServerPort;
+  const shouldStartServer = !localServerIsRunning() || !port;
+  if (shouldStartServer) {
+    stopLocalServer();
+    port = await findOpenPort(3000);
+    mainServerPort = port;
+  }
 
   process.env.HOST = '127.0.0.1';
   process.env.PORT = String(port);
   process.env.COOKIE_FILE = path.join(app.getPath('userData'), '.cookie');
   process.env.QQ_COOKIE_FILE = path.join(app.getPath('userData'), '.qq-cookie');
+  process.env.QISHUI_COOKIE_FILE = path.join(app.getPath('userData'), '.qishui-cookie');
+  process.env.QISHUI_DEVICE_FILE = path.join(app.getPath('userData'), '.qishui-device.json');
   process.env.MINERADIO_UPDATE_DIR = getUpdateDownloadDir();
+  process.env.MINERADIO_BEAT_CACHE_DIR = path.join(app.getPath('userData'), 'beatmaps'); // [macOS port]
+  process.env.MINERADIO_PLATFORM = process.platform;
+  process.env.MINERADIO_ARCH = process.arch;
   try {
     const legacyQQCookie = path.join(__dirname, '..', '.qq-cookie');
     if (fs.existsSync(legacyQQCookie)) {
@@ -1340,8 +1780,26 @@ async function createWindow() {
     console.warn('QQ cookie migration skipped:', e.message);
   }
 
-  localServer = require(path.join(__dirname, '..', 'server.js'));
-  await waitForServer(localServer);
+  if (shouldStartServer) {
+    const serverPath = path.join(__dirname, '..', 'server.js');
+
+    if (process.platform === 'darwin') {
+      // macOS + Electron 42 在主进程内跑 Node 网络服务时可能在 c-ares/V8 native 层崩溃。
+      // 把本地 API 放进独立 Node 进程，主窗口只连 127.0.0.1，崩溃面更小且更容易定位。
+      localServer = startLocalServerProcess(serverPath, port);
+      await waitForPort('127.0.0.1', port);
+    } else {
+      const resolvedServerPath = require.resolve(serverPath);
+
+      // 仅在服务确实停止后清理 require 缓存，以便异常关闭后可以重新监听。
+      if (require.cache[resolvedServerPath] && (!localServer || !localServer.listening)) {
+        delete require.cache[resolvedServerPath];
+      }
+
+      localServer = require(serverPath);
+      await waitForServer(localServer);
+    }
+  }
 
   const initialBounds = getWindowedBounds();
 
@@ -1352,12 +1810,17 @@ async function createWindow() {
     show: false,
     frame: false,
     fullscreen: false,
+    fullscreenable: true,
+    ...(process.platform === 'darwin' ? {
+      acceptFirstMouse: true, // [macOS port]
+      roundedCorners: true,
+    } : {}),
     transparent: true,
     backgroundColor: '#00000000',
     hasShadow: true,
     autoHideMenuBar: true,
     title: APP_NAME,
-    icon: APP_ICON_ICO,
+    icon: APP_WINDOW_ICON,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -1439,6 +1902,11 @@ if (!gotSingleInstanceLock) {
   });
 
   app.whenReady().then(async () => {
+    if (process.platform === 'darwin' && app.dock && fs.existsSync(APP_ICON_PNG)) {
+      try { app.dock.setIcon(APP_ICON_PNG); } catch (e) {
+        console.warn('macOS dock icon setup skipped:', e.message);
+      }
+    }
     screen.on('display-metrics-changed', () => {
       positionDesktopLyricsWindow();
       positionWallpaperWindow();
@@ -1450,8 +1918,14 @@ if (!gotSingleInstanceLock) {
   });
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-    else focusMainWindow();
+    // 只依据主窗口状态判断。桌面歌词或动态壁纸等辅助窗口不应阻止主窗口重建。
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      focusMainWindow();
+      return;
+    }
+    createWindow().catch((error) => {
+      console.error('macOS activate window restore failed:', error);
+    });
   });
 
   app.on('window-all-closed', () => {
@@ -1461,6 +1935,6 @@ if (!gotSingleInstanceLock) {
   app.on('before-quit', () => {
     unregisterMineradioGlobalHotkeys();
     closeOverlayWindows();
-    if (localServer && localServer.close) localServer.close();
+    stopLocalServer();
   });
 }
