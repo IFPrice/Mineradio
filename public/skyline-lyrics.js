@@ -30,7 +30,7 @@
     var list = chars(source);
     var out = [];
     var sizes = [2, 3, 4, 2, 3, 1];
-    for (var i = 0; i < Math.max(4, Math.min(8, list.length)); i++) {
+    for (var i = 0; i < Math.max(6, Math.min(12, list.length)); i++) {
       out.push(sliceWrap(list, i * 2, Math.min(sizes[i % sizes.length], list.length)));
     }
     return out.filter(Boolean);
@@ -42,16 +42,18 @@
   }
 
   function buildKeywords(input, progress, currentText) {
-    var leftPool = keywordPool(input.previous, currentText);
-    var rightPool = keywordPool(input.next || currentText, currentText);
-    var mixedPool = keywordPool(currentText, input.next || input.previous);
+    var currentPool = keywordPool(currentText, input.next || input.previous);
     var defs = [
-      { side:'left', pool:leftPool, at:0, x:-0.64, y:-0.38, scale:1.46, opacity:0.31, blur:1.7, spread:0.48, rotate:-6.4, trail:0.16 },
-      { side:'left', pool:mixedPool, at:2, x:-0.92, y:0.00, scale:1.22, opacity:0.21, blur:3.3, spread:0.76, rotate:4.8, trail:0.25 },
-      { side:'left', pool:leftPool, at:4, x:-0.50, y:0.44, scale:1.06, opacity:0.17, blur:4.8, spread:1.00, rotate:-3.4, trail:0.31 },
-      { side:'right', pool:rightPool, at:1, x:0.66, y:-0.34, scale:1.66, opacity:0.39, blur:1.5, spread:0.46, rotate:6.0, trail:0.18 },
-      { side:'right', pool:mixedPool, at:3, x:0.94, y:0.10, scale:1.34, opacity:0.24, blur:3.6, spread:0.82, rotate:-4.2, trail:0.28 },
-      { side:'right', pool:rightPool, at:4, x:0.48, y:0.47, scale:1.12, opacity:0.18, blur:5.0, spread:1.06, rotate:3.0, trail:0.34 }
+      { side:'left', pool:currentPool, at:0, x:-0.54, y:-0.42, scale:1.46, opacity:0.32, blur:1.7, spread:0.48, rotate:-6.4, trail:0.16, driftX:-1.08, driftY:-0.32 },
+      { side:'left', pool:currentPool, at:2, x:-0.76, y:-0.16, scale:1.22, opacity:0.22, blur:3.1, spread:0.74, rotate:4.8, trail:0.24, driftX:-1.22, driftY:0.18 },
+      { side:'left', pool:currentPool, at:4, x:-0.42, y:0.20, scale:1.08, opacity:0.18, blur:4.4, spread:0.94, rotate:-3.4, trail:0.29, driftX:-0.78, driftY:0.62 },
+      { side:'left', pool:currentPool, at:6, x:-0.88, y:0.46, scale:0.92, opacity:0.13, blur:5.6, spread:1.12, rotate:5.6, trail:0.34, driftX:-1.36, driftY:0.44 },
+      { side:'left', pool:currentPool, at:8, x:-0.30, y:0.54, scale:0.78, opacity:0.11, blur:6.2, spread:1.18, rotate:-1.4, trail:0.30, driftX:-0.52, driftY:-0.86 },
+      { side:'right', pool:currentPool, at:1, x:0.56, y:-0.36, scale:1.62, opacity:0.39, blur:1.5, spread:0.46, rotate:6.0, trail:0.18, driftX:1.12, driftY:-0.28 },
+      { side:'right', pool:currentPool, at:3, x:0.78, y:-0.06, scale:1.32, opacity:0.24, blur:3.4, spread:0.80, rotate:-4.2, trail:0.27, driftX:1.34, driftY:0.24 },
+      { side:'right', pool:currentPool, at:5, x:0.44, y:0.30, scale:1.12, opacity:0.18, blur:4.8, spread:1.02, rotate:3.0, trail:0.32, driftX:0.72, driftY:0.74 },
+      { side:'right', pool:currentPool, at:7, x:0.90, y:0.50, scale:0.96, opacity:0.14, blur:5.8, spread:1.14, rotate:-5.0, trail:0.35, driftX:1.42, driftY:-0.52 },
+      { side:'right', pool:currentPool, at:9, x:0.32, y:-0.56, scale:0.82, opacity:0.11, blur:6.4, spread:1.20, rotate:2.2, trail:0.31, driftX:0.58, driftY:0.92 }
     ];
     return defs.map(function(def, i) {
       var pulse = Math.sin((progress + i * 0.19) * Math.PI * 2);
@@ -68,6 +70,8 @@
         scale: def.scale,
         rotate: def.rotate + pulse * 1.2,
         trail: def.trail,
+        driftX: def.driftX,
+        driftY: def.driftY,
         spread: def.spread,
         diffusion: 0.22 + def.spread * 0.58,
         delay: i * 0.05

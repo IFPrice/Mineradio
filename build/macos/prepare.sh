@@ -36,7 +36,7 @@ iconutil -c icns "$ICONSET" -o "$ICON_OUTPUT"
 rm -rf "$ICONSET"
 
 DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-12.0}"
-IFS=',' read -r -a ARCH_LIST <<< "${MINERADIO_MAC_HELPER_ARCHS:-arm64,x86_64}"
+IFS=',' read -r -a ARCH_LIST <<< "${MINERADIO_MAC_HELPER_ARCHS:-arm64}"
 ARCH_FLAGS=()
 for arch in "${ARCH_LIST[@]}"; do
   [[ -n "$arch" ]] && ARCH_FLAGS+=("-arch" "$arch")

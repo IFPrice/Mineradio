@@ -11,9 +11,8 @@
     "build:win": "electron-builder --win nsis",
     "build:win:dir": "electron-builder --win dir",
     "prepare:mac": "bash build/macos/prepare.sh",
-    "build:mac": "npm run prepare:mac && electron-builder --mac",
-    "build:mac:dir": "npm run prepare:mac && electron-builder --mac dir",
-    "build:mac:x64": "npm run prepare:mac && electron-builder --mac dmg zip --x64",
+    "build:mac": "npm run prepare:mac && electron-builder --mac dmg zip --arm64",
+    "build:mac:dir": "npm run prepare:mac && electron-builder --mac dir --arm64",
     "build:mac:arm64": "npm run prepare:mac && electron-builder --mac dmg zip --arm64"
   },
   "build": {
@@ -80,15 +79,13 @@
         {
           "target": "dmg",
           "arch": [
-            "arm64",
-            "x64"
+            "arm64"
           ]
         },
         {
           "target": "zip",
           "arch": [
-            "arm64",
-            "x64"
+            "arm64"
           ]
         }
       ],
