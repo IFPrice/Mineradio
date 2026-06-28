@@ -18258,6 +18258,91 @@ function initAudio() {
 function audioHasInput(media) {
   return !!(media && (media.src || media.currentSrc || media.srcObject));
 }
+var mediaSessionControlsBound = false;
+var mediaSessionMetadataKey = '';
+function mediaSessionAvailable() {
+  return !!(navigator.mediaSession);
+}
+function setMediaSessionAction(action, handler) {
+  try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) {}
+}
+function mediaSessionSongKey(song) {
+  if (!song) return '';
+  return [
+    song.provider || song.source || song.type || '',
+    song.qishuiId || song.mid || song.songmid || song.id || '',
+    song.name || song.title || '',
+    song.artist || song.ar || song.author || ''
+  ].join('|');
+}
+function updateMediaSessionMetadata(force) {
+  if (!mediaSessionAvailable() || typeof window.MediaMetadata !== 'function') return;
+  var song = currentCoverSong();
+  var key = mediaSessionSongKey(song);
+  if (!force && key === mediaSessionMetadataKey) return;
+  mediaSessionMetadataKey = key;
+  var meta = currentDesktopSongMeta();
+  var artwork = meta.cover ? [{ src: meta.cover, sizes: '512x512', type: 'image/jpeg' }] : [];
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: meta.title || 'Mineradio',
+      artist: meta.artist || '',
+      album: song && (song.album || song.al || song.playlistName) || '',
+      artwork: artwork
+    });
+  } catch (e) {}
+}
+function updateMediaSessionPositionState() {
+  if (!mediaSessionAvailable() || typeof navigator.mediaSession.setPositionState !== 'function') return;
+  var durationSec = getPlaybackDurationSeconds();
+  if (!durationSec || !isFinite(durationSec)) return;
+  var currentSec = Math.min(getPlaybackCurrentSeconds(), durationSec);
+  var rate = audio && isFinite(audio.playbackRate) && audio.playbackRate > 0 ? audio.playbackRate : 1;
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: durationSec,
+      playbackRate: rate,
+      position: Math.max(0, currentSec)
+    });
+  } catch (e) {}
+}
+function updateMediaSessionPlaybackState() {
+  if (!mediaSessionAvailable()) return;
+  try {
+    navigator.mediaSession.playbackState = audioHasInput(audio) ? (playing ? 'playing' : 'paused') : 'none';
+  } catch (e) {}
+}
+function bindMediaSessionControls() {
+  if (!mediaSessionAvailable() || mediaSessionControlsBound) return;
+  mediaSessionControlsBound = true;
+  setMediaSessionAction('play', function(){
+    if (!audio || audio.paused || audio.ended) togglePlay();
+  });
+  setMediaSessionAction('pause', function(){
+    if (audio && !audio.paused && !audio.ended) togglePlay();
+  });
+  setMediaSessionAction('previoustrack', function(){ prevTrack(); });
+  setMediaSessionAction('nexttrack', function(){ nextTrack(); });
+  setMediaSessionAction('seekbackward', function(details){
+    if (!audio) return;
+    var offset = details && details.seekOffset || 10;
+    audio.currentTime = Math.max(0, getPlaybackCurrentSeconds() - offset);
+  });
+  setMediaSessionAction('seekforward', function(details){
+    if (!audio) return;
+    var durationSec = getPlaybackDurationSeconds();
+    var offset = details && details.seekOffset || 10;
+    var target = getPlaybackCurrentSeconds() + offset;
+    audio.currentTime = durationSec ? Math.min(durationSec, target) : target;
+  });
+  setMediaSessionAction('seekto', function(details){
+    if (!audio || !details || !isFinite(details.seekTime)) return;
+    var durationSec = getPlaybackDurationSeconds();
+    audio.currentTime = durationSec ? clampRange(details.seekTime, 0, durationSec) : Math.max(0, details.seekTime);
+  });
+  updateMediaSessionMetadata(true);
+  updateMediaSessionPlaybackState();
+}
 function resumeAudioAnalysis() {
   if (audioCtx && audioCtx.state === 'suspended') return audioCtx.resume().catch(function(e){ console.warn('audio context resume failed:', e); });
   return Promise.resolve();
@@ -18857,6 +18942,7 @@ function syncPlaybackStateFromAudioEvent(reason) {
   var isPlaying = !!(audioHasInput(audio) && !audio.paused && !audio.ended);
   playing = isPlaying;
   setPlayIcon(isPlaying);
+  updateMediaSessionPlaybackState();
   if (!isPlaying) hideLoading();
   if (reason === 'play' || reason === 'playing') switchPlaybackVisualToEmily();
   forcePlaybackControlsInteractive();
@@ -18946,6 +19032,7 @@ async function playQueueAt(idx, opts) {
     document.getElementById('thumb-title').textContent = song.name;
     document.getElementById('thumb-artist').textContent = song.artist;
     updateControlTrackInfo(song);
+    updateMediaSessionMetadata(true);
     document.getElementById('thumb-wrap').classList.add('visible');
   });
   markPlayPhase('lyric-prep');
@@ -20460,6 +20547,7 @@ function updatePlaybackProgressUi() {
   setProgressVisual(durationSec > 0 ? (currentSec / durationSec * 100) : 0);
   var timeDisplay = document.getElementById('time-display');
   if (timeDisplay) timeDisplay.textContent = formatProgramTime(currentSec) + ' / ' + (durationSec > 0 ? formatProgramTime(durationSec) : '0:00');
+  updateMediaSessionPositionState();
 }
 function bindPlaybackProgressEvents(audioEl) {
   if (!audioEl || audioEl._mineradioProgressBound) return;
@@ -20501,7 +20589,7 @@ function seekFromProgressPointer(e, emitParticles) {
 }
 var progressBar = document.getElementById('progress-bar');
 progressBar.addEventListener('pointerdown', function(e){
-  if (!audio || !audio.duration) return;
+  if (!audio || !getPlaybackDurationSeconds()) return;
   progressDragState.active = true;
   progressBar.classList.add('is-dragging');
   try { progressBar.setPointerCapture(e.pointerId); } catch (err) {}
@@ -20571,6 +20659,7 @@ function handleFiles(files) {
     document.getElementById('thumb-title').textContent = localTitle;
     document.getElementById('thumb-artist').textContent = '本地文件';
     updateControlTrackInfo({ name: localTitle, artist: '本地文件' });
+    updateMediaSessionMetadata(true);
     document.getElementById('thumb-wrap').classList.add('visible');
     safeRenderQueuePanel('play-local-file');
     safeShelfRebuild('play-local-file', true);
@@ -27304,6 +27393,7 @@ function toggleFullscreen() {
 // ============================================================
 applyDiyMode(diyPlayerMode, { save: false });
 bindFxPanel();
+bindMediaSessionControls();
 applySavedLyricPaletteState();
 bindQualityControl();
 bindVolumeControls();

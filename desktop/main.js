@@ -23,6 +23,7 @@ let htmlFullscreenActive = false;
 let windowFullscreenActive = false;
 let mainWindowStateTimer = null;
 const registeredGlobalHotkeys = new Map();
+const registeredSystemMediaHotkeys = new Map();
 
 const WINDOWED_ASPECT = 16 / 9;
 const WINDOWED_SCALE = 3 / 4;
@@ -44,6 +45,11 @@ const QQ_LOGIN_URL = 'https://y.qq.com/n/ryqq/profile';
 const QISHUI_LOGIN_PARTITION = 'persist:mineradio-qishui-login';
 const QISHUI_LOGIN_URL = 'https://bubble.qishui.com/';
 const ELECTRON_MAJOR = String(process.versions.electron || 'unknown').split('.')[0] || 'unknown';
+const SYSTEM_MEDIA_HOTKEYS = [
+  { action: 'togglePlay', accelerator: 'MediaPlayPause' },
+  { action: 'prevTrack', accelerator: 'MediaPreviousTrack' },
+  { action: 'nextTrack', accelerator: 'MediaNextTrack' },
+];
 
 const CHROMIUM_PERFORMANCE_SWITCHES = [
   ['autoplay-policy', 'no-user-gesture-required'],
@@ -330,6 +336,16 @@ function sendWindowState(win) {
   win.webContents.send('desktop-window-state', getWindowState(win));
 }
 
+function mediaKeyActionFromInput(input = {}) {
+  const key = String(input.key || '').toLowerCase();
+  const code = String(input.code || '').toLowerCase();
+  const text = `${key} ${code}`;
+  if (/mediaplaypause|media_play_pause|playpause/.test(text)) return 'togglePlay';
+  if (/mediaprevioustrack|mediatrackprevious|media_previous_track|previous|prev/.test(text)) return 'prevTrack';
+  if (/medianexttrack|mediatracknext|media_next_track|next/.test(text)) return 'nextTrack';
+  return '';
+}
+
 function sendGlobalHotkeyAction(action) {
   if (!mainWindow || mainWindow.isDestroyed() || !action) return;
   mainWindow.webContents.send('mineradio-global-hotkey', { action });
@@ -340,6 +356,29 @@ function unregisterMineradioGlobalHotkeys() {
     try { globalShortcut.unregister(accelerator); } catch (e) {}
   }
   registeredGlobalHotkeys.clear();
+}
+
+function unregisterSystemMediaHotkeys() {
+  for (const accelerator of registeredSystemMediaHotkeys.keys()) {
+    try { globalShortcut.unregister(accelerator); } catch (e) {}
+  }
+  registeredSystemMediaHotkeys.clear();
+}
+
+function registerSystemMediaHotkeys() {
+  if (process.platform !== 'darwin') return;
+  for (const item of SYSTEM_MEDIA_HOTKEYS) {
+    if (!item.accelerator || registeredSystemMediaHotkeys.has(item.accelerator)) continue;
+    try {
+      if (globalShortcut.register(item.accelerator, () => sendGlobalHotkeyAction(item.action))) {
+        registeredSystemMediaHotkeys.set(item.accelerator, item.action);
+      } else {
+        console.warn(`[MineradioHotkeys] ${item.accelerator} unavailable; macOS may require Accessibility permission.`);
+      }
+    } catch (error) {
+      console.warn(`[MineradioHotkeys] ${item.accelerator} registration failed:`, error && error.message ? error.message : error);
+    }
+  }
 }
 
 function configureMineradioGlobalHotkeys(bindings = []) {
@@ -1840,6 +1879,14 @@ async function createWindow() {
   });
 
   mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown') {
+      const mediaAction = mediaKeyActionFromInput(input);
+      if (mediaAction) {
+        event.preventDefault();
+        sendGlobalHotkeyAction(mediaAction);
+        return;
+      }
+    }
     if (input.type === 'keyDown' && (input.key === 'Escape' || input.code === 'Escape') && mainWindow.isFullScreen()) {
       event.preventDefault();
       exitFullscreenToWindow(mainWindow);
@@ -1866,6 +1913,7 @@ async function createWindow() {
       clearTimeout(mainWindowStateTimer);
       mainWindowStateTimer = null;
     }
+    unregisterSystemMediaHotkeys();
     closeOverlayWindows();
     mainWindow = null;
   });
@@ -1886,6 +1934,7 @@ async function createWindow() {
     setTimeout(() => applyWindowedBounds(mainWindow), 50);
   });
 
+  registerSystemMediaHotkeys();
   await mainWindow.loadURL(`http://127.0.0.1:${port}`);
 }
 
@@ -1934,6 +1983,7 @@ if (!gotSingleInstanceLock) {
 
   app.on('before-quit', () => {
     unregisterMineradioGlobalHotkeys();
+    unregisterSystemMediaHotkeys();
     closeOverlayWindows();
     stopLocalServer();
   });

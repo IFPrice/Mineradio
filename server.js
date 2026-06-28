@@ -71,6 +71,8 @@ const UPDATE_CONFIG = readUpdateConfig(APP_PACKAGE);
 const PATCH_MAX_BYTES = 12 * 1024 * 1024;
 const PATCH_ALLOWED_ROOTS = new Set(['public', 'desktop', 'build']);
 const PATCH_ALLOWED_FILES = new Set(['server.js', 'dj-analyzer.js', 'package.json', 'package-lock.json']);
+const QISHUI_DECRYPTED_AUDIO_CACHE_MAX_ENTRIES = 3;
+const QISHUI_DECRYPTED_AUDIO_CACHE_MAX_BYTES = 180 * 1024 * 1024;
 const UPDATE_FALLBACK_NOTES = [
   '电影镜头节奏更松',
   '音源失败自动换源',
@@ -88,6 +90,8 @@ const WEATHER_DEFAULT_LOCATION = {
 };
 
 const updateDownloadJobs = new Map();
+const qishuiDecryptedAudioCache = new Map();
+let qishuiDecryptedAudioCacheBytes = 0;
 
 function applySystemCertificateAuthorities() {
   try {
@@ -2730,6 +2734,66 @@ async function fetchBinary(targetUrl, headers) {
   };
 }
 
+function qishuiDecryptedAudioCacheKey(qishuiAuth) {
+  const sourceUrl = String((qishuiAuth && qishuiAuth.url) || '');
+  const playAuth = String((qishuiAuth && qishuiAuth.playAuth) || '');
+  return crypto
+    .createHash('sha1')
+    .update(sourceUrl)
+    .update('\0')
+    .update(playAuth)
+    .digest('hex');
+}
+
+function getCachedQishuiDecryptedAudio(qishuiAuth) {
+  const key = qishuiDecryptedAudioCacheKey(qishuiAuth);
+  const cached = qishuiDecryptedAudioCache.get(key);
+  if (!cached) return null;
+  qishuiDecryptedAudioCache.delete(key);
+  cached.lastAccess = Date.now();
+  qishuiDecryptedAudioCache.set(key, cached);
+  return cached;
+}
+
+function trimQishuiDecryptedAudioCache() {
+  while (
+    qishuiDecryptedAudioCache.size > QISHUI_DECRYPTED_AUDIO_CACHE_MAX_ENTRIES ||
+    qishuiDecryptedAudioCacheBytes > QISHUI_DECRYPTED_AUDIO_CACHE_MAX_BYTES
+  ) {
+    const oldestKey = qishuiDecryptedAudioCache.keys().next().value;
+    if (!oldestKey) break;
+    const oldest = qishuiDecryptedAudioCache.get(oldestKey);
+    qishuiDecryptedAudioCacheBytes -= oldest && oldest.size || 0;
+    qishuiDecryptedAudioCache.delete(oldestKey);
+  }
+}
+
+function cacheQishuiDecryptedAudio(qishuiAuth, entry) {
+  if (!entry || !entry.buffer) return entry;
+  const size = entry.buffer.length || 0;
+  if (size > QISHUI_DECRYPTED_AUDIO_CACHE_MAX_BYTES) return entry;
+  const key = qishuiDecryptedAudioCacheKey(qishuiAuth);
+  const existing = qishuiDecryptedAudioCache.get(key);
+  if (existing) qishuiDecryptedAudioCacheBytes -= existing.size || 0;
+  const cached = { ...entry, size, lastAccess: Date.now() };
+  qishuiDecryptedAudioCache.set(key, cached);
+  qishuiDecryptedAudioCacheBytes += size;
+  trimQishuiDecryptedAudioCache();
+  return cached;
+}
+
+async function getQishuiDecryptedAudio(qishuiAuth) {
+  const cached = getCachedQishuiDecryptedAudio(qishuiAuth);
+  if (cached) return cached;
+  const hdr = audioProxyHeadersFor(qishuiAuth.url, '');
+  const up = await fetchBinary(qishuiAuth.url, hdr);
+  const buffer = decryptQishuiAudioBuffer(up.buffer, qishuiAuth.playAuth);
+  return cacheQishuiDecryptedAudio(qishuiAuth, {
+    buffer,
+    contentType: audioContentTypeForUrl(qishuiAuth.url, up.contentType || 'audio/mp4'),
+  });
+}
+
 function clampNumber(value, min, max, fallback) {
   if (value === null || value === undefined || value === '') return fallback;
   const n = Number(value);
@@ -3310,6 +3374,39 @@ function audioContentTypeForUrl(audioUrl, upstreamType) {
   if (/\.ogg$/.test(pathname)) return 'audio/ogg';
   if (/\.wav$/.test(pathname)) return 'audio/wav';
   return upstreamType || 'audio/mpeg';
+}
+
+function parseSingleByteRange(rangeHeader, totalLength) {
+  const raw = String(rangeHeader || '').trim();
+  if (!raw) return null;
+  const match = /^bytes=(\d*)-(\d*)$/i.exec(raw);
+  if (!match || totalLength < 1) return { invalid: true };
+
+  const startText = match[1];
+  const endText = match[2];
+  if (!startText && !endText) return { invalid: true };
+
+  let start;
+  let end;
+  if (!startText) {
+    const suffixLength = Number(endText);
+    if (!Number.isSafeInteger(suffixLength) || suffixLength <= 0) return { invalid: true };
+    start = Math.max(totalLength - suffixLength, 0);
+    end = totalLength - 1;
+  } else {
+    start = Number(startText);
+    if (!Number.isSafeInteger(start) || start < 0) return { invalid: true };
+    if (endText) {
+      end = Number(endText);
+      if (!Number.isSafeInteger(end) || end < start) return { invalid: true };
+    } else {
+      end = totalLength - 1;
+    }
+    if (start >= totalLength) return { invalid: true };
+    end = Math.min(end, totalLength - 1);
+  }
+
+  return { start, end };
 }
 
 function mapQQPlaylist(pl, kind) {
@@ -5222,13 +5319,34 @@ const server = http.createServer(async (req, res) => {
       if (!audioUrl) { res.writeHead(400); res.end('Missing url'); return; }
       const qishuiAuth = splitQishuiAudioAuth(audioUrl);
       if (qishuiAuth.playAuth) {
-        const hdr = audioProxyHeadersFor(qishuiAuth.url, '');
-        const up = await fetchBinary(qishuiAuth.url, hdr);
-        const decrypted = decryptQishuiAudioBuffer(up.buffer, qishuiAuth.playAuth);
+        const decryptedAudio = await getQishuiDecryptedAudio(qishuiAuth);
+        const decrypted = decryptedAudio.buffer;
+        const contentType = decryptedAudio.contentType || 'audio/mp4';
+        const range = parseSingleByteRange(req.headers.range, decrypted.length);
+        if (range && range.invalid) {
+          res.writeHead(416, {
+            'Content-Range': `bytes */${decrypted.length}`,
+            'Access-Control-Allow-Origin': '*',
+            'Accept-Ranges': 'bytes',
+          });
+          res.end();
+          return;
+        }
+        if (range) {
+          res.writeHead(206, {
+            'Content-Type': contentType,
+            'Access-Control-Allow-Origin': '*',
+            'Accept-Ranges': 'bytes',
+            'Content-Range': `bytes ${range.start}-${range.end}/${decrypted.length}`,
+            'Content-Length': range.end - range.start + 1,
+          });
+          res.end(decrypted.subarray(range.start, range.end + 1));
+          return;
+        }
         res.writeHead(200, {
-          'Content-Type': audioContentTypeForUrl(qishuiAuth.url, up.contentType || 'audio/mp4'),
+          'Content-Type': contentType,
           'Access-Control-Allow-Origin': '*',
-          'Accept-Ranges': 'none',
+          'Accept-Ranges': 'bytes',
           'Content-Length': decrypted.length,
         });
         res.end(decrypted);
