@@ -39,16 +39,27 @@ body::after,#desktop-window-shell::after{content:none}
 body.desktop-shell{background:transparent}
 body.desktop-shell #desktop-window-shell{display:block;position:fixed;inset:0;overflow:hidden;border-radius:34px;clip-path:inset(0 round 34px);background:transparent;box-shadow:0 24px 80px rgba(0,0,0,.46);transform:translateZ(0)}
 body.desktop-shell.desktop-maximized #desktop-window-shell,body.desktop-shell.desktop-fullscreen #desktop-window-shell,html:fullscreen body.desktop-shell #desktop-window-shell{border-radius:0!important;clip-path:none!important;box-shadow:none!important}
-body.desktop-shell #desktop-titlebar{position:fixed;z-index:500;top:0;left:0;right:0;height:44px;padding:0 12px 0 18px;display:flex;align-items:center;justify-content:space-between;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;-webkit-app-region:drag;pointer-events:none}
+body.desktop-shell #desktop-titlebar{position:fixed;z-index:500;top:0;left:0;right:0;height:44px;padding:0 14px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;-webkit-app-region:drag;pointer-events:none}
 body.desktop-shell #desktop-titlebar::after{content:none}
-.desktop-drag-region{height:100%;flex:1;display:flex;align-items:center;gap:9px;min-width:0;color:rgba(224,250,255,.74);font-size:12px;font-weight:600;letter-spacing:0;text-transform:uppercase;-webkit-app-region:drag;pointer-events:auto}
+.desktop-drag-region{height:100%;display:flex;align-items:center;gap:9px;min-width:0;color:rgba(224,250,255,.74);font-size:12px;font-weight:600;letter-spacing:0;text-transform:uppercase;-webkit-app-region:drag;pointer-events:auto}
 .desktop-app-mark{display:none}
 .desktop-app-title{display:none}
-.desktop-window-controls{display:flex;align-items:center;gap:6px;padding:0;border-radius:0;background:transparent;box-shadow:none;-webkit-app-region:no-drag;pointer-events:auto}
-.desktop-window-btn{width:38px;height:30px;border:0;border-radius:10px;background:rgba(4,8,10,.42);color:rgba(224,250,255,.72);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .18s,color .18s,transform .18s}
-.desktop-window-btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none}
-.desktop-window-btn:hover{background:rgba(244,210,138,.14);color:#fff1bd;transform:translateY(-1px)}
-.desktop-window-btn.close:hover{background:rgba(255,86,100,.86);color:#fff}
+.desktop-traffic-lights,.desktop-utility-controls{display:flex;align-items:center;-webkit-app-region:no-drag;pointer-events:auto}
+.desktop-traffic-lights{gap:8px;padding-left:4px}
+.desktop-utility-controls{gap:6px;justify-content:flex-end}
+.desktop-window-btn{width:13px;height:13px;border:0;border-radius:50%;padding:0;background:#8b8f98;color:rgba(40,20,18,.66);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:filter .16s,transform .16s,box-shadow .16s}
+.desktop-window-btn span{display:block;position:relative;width:100%;height:100%;opacity:0;transition:opacity .12s}
+.desktop-window-btn.close{background:#ff5f57}
+.desktop-window-btn.minimize{background:#ffbd2e}
+.desktop-window-btn.maximize{background:#28c840}
+.desktop-traffic-lights:hover .desktop-window-btn span{opacity:1}
+.desktop-window-btn.close span::before,.desktop-window-btn.close span::after{content:"";position:absolute;left:3px;right:3px;top:6px;height:1.5px;border-radius:2px;background:currentColor}
+.desktop-window-btn.close span::before{transform:rotate(45deg)}
+.desktop-window-btn.close span::after{transform:rotate(-45deg)}
+.desktop-window-btn.minimize span::before{content:"";position:absolute;left:3px;right:3px;top:6px;height:1.5px;border-radius:2px;background:currentColor}
+.desktop-window-btn.maximize .icon-maximize::before{content:"";position:absolute;left:3.5px;top:3.5px;width:6px;height:6px;border-radius:1.5px;background:currentColor}
+.desktop-window-btn.maximize .icon-restore::before{content:"";position:absolute;left:3.2px;top:3.2px;width:6.5px;height:6.5px;border-radius:1.5px;border:1.5px solid currentColor;box-sizing:border-box}
+.desktop-window-btn:hover{filter:brightness(1.06);transform:translateY(-.5px);box-shadow:0 0 0 1px rgba(0,0,0,.18)}
 .desktop-mode-btn{height:30px;min-width:78px;padding:0 12px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(4,8,10,.42);color:rgba(224,250,255,.70);font-family:inherit;font-size:11px;font-weight:760;letter-spacing:.08em;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:background .18s,color .18s,transform .18s,border-color .18s,box-shadow .18s}
 .desktop-mode-btn::before{content:'';width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.28);box-shadow:0 0 0 rgba(255,83,103,0);transition:background .18s,box-shadow .18s}
 .desktop-mode-btn:hover{background:rgba(255,83,103,.10);border-color:rgba(255,83,103,.34);color:#fff;transform:translateY(-1px)}
@@ -1914,11 +1925,16 @@ html.control-glass-svg-ok #visual-guide-btn:hover{
 <body>
 <div id="desktop-window-shell">
 <div id="desktop-titlebar" aria-label="window controls">
+  <div class="desktop-traffic-lights" aria-label="macOS window controls">
+    <button class="desktop-window-btn close" data-window-action="close" title="关闭" aria-label="关闭"><span aria-hidden="true"></span></button>
+    <button class="desktop-window-btn minimize" data-window-action="minimize" title="最小化" aria-label="最小化"><span aria-hidden="true"></span></button>
+    <button class="desktop-window-btn maximize" data-window-action="maximize" title="全屏" aria-label="全屏"><span class="icon-maximize" aria-hidden="true"></span><span class="icon-restore" aria-hidden="true" style="display:none"></span></button>
+  </div>
   <div class="desktop-drag-region">
     <div class="desktop-app-mark" aria-hidden="true"></div>
     <div class="desktop-app-title" aria-hidden="true"></div>
   </div>
-  <div class="desktop-window-controls">
+  <div class="desktop-utility-controls">
     <button id="visual-guide-btn" class="icon-btn" type="button" onclick="startVisualGuide({ manual: true })" title="查看使用引导" aria-label="查看使用引导">?</button>
     <button id="update-entry" class="update-entry" type="button" onclick="openUpdatePanel()" title="发现新版本" aria-label="发现新版本">
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1929,16 +1945,6 @@ html.control-glass-svg-ok #visual-guide-btn:hover{
       </svg>
     </button>
     <button id="diy-mode-btn" class="desktop-mode-btn" type="button" onclick="toggleDiyMode()" title="开启 DIY 玩家模式" aria-label="开启 DIY 玩家模式" aria-pressed="false">DIY</button>
-    <button class="desktop-window-btn" data-window-action="minimize" title="最小化" aria-label="最小化">
-      <svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg>
-    </button>
-    <button class="desktop-window-btn" data-window-action="maximize" title="全屏" aria-label="全屏">
-      <svg class="icon-maximize" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" rx="1.5"/></svg>
-      <svg class="icon-restore" viewBox="0 0 16 16" style="display:none"><path d="M5 3.5h7.5v7.5"/><rect x="3.5" y="5.5" width="7" height="7" rx="1.3"/></svg>
-    </button>
-    <button class="desktop-window-btn close" data-window-action="close" title="关闭" aria-label="关闭">
-      <svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-    </button>
   </div>
 </div>
 <div id="fullscreen-diy-zone" aria-hidden="true">
@@ -2812,6 +2818,7 @@ var AUDIO_FADE_OUT_MS = 420;
 var AUDIO_SILENCE_GAIN = 0.0001;
 var userPlaylists = [], qqPlaylists = [], qishuiPlaylists = [], myPodcastCollections = [], myPodcastItems = {}, playlistCoverCache = {};
 var playlistProviderFilter = 'all';
+var shelfPlaylistProviderOverride = '';
 var CUSTOM_COVER_STORE_KEY = 'mineradio-custom-covers';
 var CUSTOM_LYRIC_STORE_KEY = 'mineradio-custom-lyrics-v1';
 var CUSTOM_LYRIC_PREF_STORE_KEY = 'mineradio-custom-lyric-prefs-v1';
@@ -13510,6 +13517,33 @@ function suppressShelfPreviewForPlaybackSwitch() {
   if (shelfManager && shelfManager.clearSelected) shelfManager.clearSelected();
   if (typeof setFocusZone === 'function') setFocusZone(null, true);
 }
+function normalizeShelfPlaylistProvider(provider) {
+  return provider === 'all' || provider === 'netease' || provider === 'qq' || provider === 'qishui' ? provider : '';
+}
+function setShelfPlaylistProvider(provider, reason) {
+  var next = normalizeShelfPlaylistProvider(provider);
+  if (shelfPlaylistProviderOverride === next) return false;
+  shelfPlaylistProviderOverride = next;
+  scheduleShelfRebuild(reason || 'shelf-provider-switch', true);
+  return true;
+}
+function currentShelfPlaylistProvider() {
+  var override = normalizeShelfPlaylistProvider(shelfPlaylistProviderOverride);
+  if (override === 'all') return '';
+  if (override) return override;
+  var song = currentCoverSong();
+  if (!song || currentIdx < 0) return '';
+  return songProviderKey(song);
+}
+function shelfPlaylistMatchesPlaybackProvider(pl, provider) {
+  provider = provider || currentShelfPlaylistProvider();
+  if (!provider) return true;
+  return normalizeProviderKey(pl && pl.provider) === provider;
+}
+function shelfAllowsPodcastCollections(provider) {
+  provider = provider || currentShelfPlaylistProvider();
+  return !provider || provider === 'netease';
+}
 function makeShelfManager() {
   var group = null;
   var cards = [];          // [{canvas, ctx, texture, mesh, item, index, slot}]
@@ -13542,7 +13576,9 @@ function makeShelfManager() {
   // 一次性返回完整 items 数组 (不只 5 张, 全部参与 PSP 滚动)
   function splitPlaylists() {
     var mine = [], fav = [];
+    var providerFilter = currentShelfPlaylistProvider();
     userPlaylists.forEach(function(pl) {
+      if (!shelfPlaylistMatchesPlaybackProvider(pl, providerFilter)) return;
       (pl.subscribed ? fav : mine).push(pl);
     });
     return { mine: mine, fav: fav };
@@ -13567,6 +13603,7 @@ function makeShelfManager() {
 
   function currentItems() {
     if (hasAnyPlatformLogin() && (userPlaylists.length || myPodcastCollections.length)) {
+      var providerFilter = currentShelfPlaylistProvider();
       var source = activePlaylists();
       var items = source.map(function(pl){
         var provider = normalizeProviderKey(pl.provider);
@@ -13574,7 +13611,7 @@ function makeShelfManager() {
         return { type:'playlist', title: pl.name, sub:sourceLabel + ' · ' + (pl.trackCount||0)+' 首 · 播放 '+compactCount(pl.playCount||0),
           cover: pl.cover || '', tag: pl.subscribed ? '收藏歌单' : '我的歌单', playlistId: playlistPanelProviderId(provider, pl.id), provider: provider };
       });
-      if (shelfShowsPodcasts() && (shelfPane === 'mine' || shelfMergesCollections()) && myPodcastCollections.length) {
+      if (shelfShowsPodcasts() && shelfAllowsPodcastCollections(providerFilter) && (shelfPane === 'mine' || shelfMergesCollections()) && myPodcastCollections.length) {
         myPodcastCollections.forEach(function(pc){
           items.push({ type:'podcastCollection', title: pc.title, sub:(pc.count || 0) + ' items', cover: pc.cover || '', tag:'我的播客', podcastKey: pc.key, itemType: pc.itemType });
         });
@@ -14086,6 +14123,7 @@ void main(){ vec4 t = texture2D(uDotTex, gl_PointCoord); if (t.a < 0.02) discard
 
   function sig(items) {
     if (hasAnyPlatformLogin() && (userPlaylists.length || myPodcastCollections.length)) {
+      var providerFilter = currentShelfPlaylistProvider();
       var source = activePlaylists();
       items = items || currentItems();
       var sampleItems = items.slice(0, 3).concat(items.slice(Math.max(3, items.length - 3)));
@@ -14094,6 +14132,7 @@ void main(){ vec4 t = texture2D(uDotTex, gl_PointCoord); if (t.a < 0.02) discard
         shelfPane,
         shelfMergesCollections() ? 1 : 0,
         shelfShowsPodcasts() ? 1 : 0,
+        providerFilter,
         source.length,
         myPodcastCollections.length,
         sampleItems.map(function(it){
@@ -16055,17 +16094,53 @@ function listenRecordProvider(record) {
   return provider;
 }
 function homePreferredProvider() {
-  if (isQishuiModeRadioActive()) return 'qishui';
   if (hasPlatformLogin(activeAccountProvider)) return activeAccountProvider;
+  if (isQishuiModeRadioActive()) return 'qishui';
   if (qishuiLoginStatus && qishuiLoginStatus.loggedIn && !loginStatus.loggedIn && !qqLoginStatus.loggedIn) return 'qishui';
   return firstLoggedProvider();
 }
 function homeUsesQishuiLogic() {
   return homePreferredProvider() === 'qishui';
 }
+function homeUsesQQLogic() {
+  return homePreferredProvider() === 'qq';
+}
 function qishuiHomePlaylists() {
   var fromUser = (userPlaylists || []).filter(function(pl){ return pl && normalizeProviderKey(pl.provider || pl.source) === 'qishui'; });
   return (qishuiPlaylists && qishuiPlaylists.length) ? qishuiPlaylists : fromUser;
+}
+function qqHomePlaylists() {
+  return (userPlaylists || []).filter(function(pl){
+    return pl && normalizeProviderKey(pl.provider || pl.source) === 'qq';
+  });
+}
+function qqFavoritePlaylist() {
+  var lists = qqHomePlaylists();
+  return lists.find(function(pl){
+    return Number(pl.specialType || 0) === 5 || /我喜欢|喜欢的音乐|liked/i.test(String(pl.name || ''));
+  }) || lists.find(function(pl){ return !!pl.subscribed; }) || lists[0] || null;
+}
+function qqRecentRecord(summary) {
+  summary = summary || homeListenSummary();
+  var recent = (listenStatsState.history || []).find(function(record){
+    return record && listenRecordProvider(record) === 'qq';
+  });
+  if (recent) return recent;
+  if (summary && summary.recent && songProviderKey(summary.recent) === 'qq') return summary.recent;
+  return null;
+}
+function qqSearchSeed(summary) {
+  summary = summary || homeListenSummary();
+  var recent = qqRecentRecord(summary);
+  if (recent && (recent.artist || recent.name)) return recent.artist || recent.name;
+  if (summary && summary.topArtist && summary.topArtist.name) return summary.topArtist.name;
+  return 'QQ 音乐 推荐';
+}
+function qqAccountStatusText() {
+  if (!(qqLoginStatus && qqLoginStatus.loggedIn)) return '登录后同步 QQ 歌单';
+  if (qqLoginStatus.stale) return 'QQ 登录状态可能已失效';
+  if (!qqLoginStatus.playbackKeyReady) return 'QQ 已登录 · 播放授权不完整';
+  return (qqLoginStatus.nickname || 'QQ 音乐') + ' · 播放授权正常';
 }
 function readQishuiListenMode() {
   var saved = '';
@@ -16310,6 +16385,21 @@ function qishuiRecentRecord(summary) {
   var recent = summary && summary.recent;
   return listenRecordProvider(recent) === 'qishui' ? recent : null;
 }
+function qqHomeTiles(summary) {
+  summary = summary || homeListenSummary();
+  var lists = qqHomePlaylists();
+  var recent = qqRecentRecord(summary);
+  var seed = qqSearchSeed(summary);
+  var primary = lists[0] || null;
+  var secondary = lists[1] || null;
+  return [
+    { kind: 'qqPlaylist', playlist: primary, title: primary && primary.name || 'QQ 歌单 1', sub: primary && primary.trackCount ? primary.trackCount + ' 首' : '打开 QQ 歌单', cover: primary && primary.cover || '', tone: 'playlist' },
+    { kind: 'qqPlaylist', playlist: secondary, title: secondary && secondary.name || 'QQ 歌单 2', sub: secondary && secondary.trackCount ? secondary.trackCount + ' 首' : '更多 QQ 歌单', cover: secondary && secondary.cover || '', tone: 'playlist' },
+    { kind: 'qqRecentSong', record: recent, song: recent, title: recent && recent.name || '最近 QQ 歌曲', sub: recent && recent.artist || '最近播放会出现在这里', cover: recent && recent.cover || '', tone: 'daily' },
+    { kind: 'qqArtist', query: recent && recent.artist || seed, record: recent, song: recent, title: recent && recent.artist || 'QQ 歌手入口', sub: 'QQ 歌手入口', cover: recent && recent.cover || '', tone: 'profile' },
+    { kind: 'qqSearch', query: seed, title: 'QQ 搜索开播', sub: seed, cover: recent && recent.cover || primary && primary.cover || '', tone: 'search' }
+  ];
+}
 function fallbackHomeTiles() {
   return [
     { kind: 'login', title: '登录同步歌单', sub: '网易云 / QQ / 汽水' },
@@ -16362,9 +16452,12 @@ function renderHomeTiles() {
   var tiles = [];
   var loggedOutHome = !homeDiscoverState.loggedIn && !hasAnyPlatformLogin();
   var qishuiHome = homeUsesQishuiLogic();
+  var qqHome = homeUsesQQLogic();
   var weatherSongs = homeWeatherRadioState.radio && homeWeatherRadioState.radio.songs || [];
   var summary = homeListenSummary();
-  if (qishuiHome) {
+  if (qqHome) {
+    tiles = qqHomeTiles(summary);
+  } else if (qishuiHome) {
     var qMode = qishuiListenModeInfo();
     var qsRecent = qishuiRecentRecord(summary);
     var qsLists = qishuiHomePlaylists();
@@ -16407,10 +16500,12 @@ function renderHomeTiles() {
   }
   if (!tiles.length) tiles = fallbackHomeTiles();
   tiles = tiles.slice(0, 5);
-  if (title) title.textContent = qishuiHome ? '汽水音乐' : (summary.recent ? '接着听' : (loggedOutHome ? '先从这里开始' : '你的歌单与推荐'));
+  if (title) title.textContent = qqHome ? 'QQ 音乐' : (qishuiHome ? '汽水音乐' : (summary.recent ? '接着听' : (loggedOutHome ? '先从这里开始' : '你的歌单与推荐')));
   if (note) {
     var liveNote = homeDiscoverState.updatedAt ? '刚刚更新 · 点击即可播放' : '点击即可播放';
-    note.textContent = qishuiHome
+    note.textContent = qqHome
+      ? (qqLoginStatus.loggedIn ? 'QQ 歌单 / 最近播放 / 搜索入口' : '登录后同步 QQ 歌单，也可直接搜索')
+      : qishuiHome
       ? (qishuiLoginStatus.loggedIn ? '推荐 / 听歌模式 / 汽水歌单' : '搜索可免登录，登录后同步歌单')
       : (homeDiscoverState.loading ? '正在整理推荐' : (loggedOutHome && !weatherSongs.length ? '不会自动拉取外部推荐' : (homeDiscoverState.error ? '离线精选' : liveNote)));
   }
@@ -16431,6 +16526,7 @@ function renderHomeDiscover() {
   var sub = document.getElementById('home-subtitle');
   var loggedOutHome = !homeDiscoverState.loggedIn && !hasAnyPlatformLogin();
   var qishuiHome = homeUsesQishuiLogic();
+  var qqHome = homeUsesQQLogic();
   var weather = homeWeatherRadioState.weather;
   var radio = homeWeatherRadioState.radio;
   var weatherLocation = weather && weather.location && weather.location.name || homeWeatherRadioState.city || '上海';
@@ -16478,11 +16574,48 @@ function renderHomeDiscover() {
   var libTitle = document.getElementById('home-library-title');
   var libSub = document.getElementById('home-library-sub');
   setHomeCardLabel('home-weather-card-label', 'Library');
-  setHomeCardLabel('home-daily-label', qishuiHome ? 'Recommend' : 'Daily');
-  setHomeCardLabel('home-private-label', qishuiHome ? 'Mode' : 'Song');
+  setHomeCardLabel('home-daily-label', qqHome ? 'Start' : (qishuiHome ? 'Recommend' : 'Daily'));
+  setHomeCardLabel('home-private-label', qqHome ? 'Search' : (qishuiHome ? 'Mode' : 'Song'));
   setHomeCardLabel('home-continue-label', 'Continue');
-  setHomeCardLabel('home-profile-label', qishuiHome ? 'Fresh' : 'Profile');
-  setHomeCardLabel('home-library-label', qishuiHome ? 'Familiar' : 'Song');
+  setHomeCardLabel('home-profile-label', qqHome ? 'Account' : (qishuiHome ? 'Fresh' : 'Profile'));
+  setHomeCardLabel('home-library-label', qqHome ? 'Favorite' : (qishuiHome ? 'Familiar' : 'Song'));
+  if (qqHome) {
+    var qqLists = qqHomePlaylists();
+    var qqPrimaryList = qqLists[0] || null;
+    var qqSecondList = qqLists[1] || qqFavoritePlaylist();
+    var qqFavorite = qqFavoritePlaylist();
+    var qqRecent = qqRecentRecord(summary);
+    var qqSeed = qqSearchSeed(summary);
+    var qqAvatar = providerAvatarSrc('qq', qqLoginStatus);
+    var qqCover = (qqPrimaryList && qqPrimaryList.cover) || (qqRecent && qqRecent.cover) || qqAvatar;
+
+    if (weatherCardTitle) weatherCardTitle.textContent = 'QQ 歌单';
+    if (weatherCardSub) weatherCardSub.textContent = qqLoginStatus.loggedIn
+      ? (qqLists.length ? (qqLists.length + ' 个已同步歌单') : '同步 QQ 歌单')
+      : '登录后同步 QQ 歌单';
+    if (dailyTitle) dailyTitle.textContent = 'QQ 今日开播';
+    if (dailySub) dailySub.textContent = qqLists.length
+      ? '从 QQ 歌单和最近播放生成队列'
+      : '先用 QQ 搜索开播';
+    if (privateTitle) privateTitle.textContent = 'QQ 搜索开播';
+    if (privateSub) privateSub.textContent = '搜索 ' + qqSeed;
+    if (continueTitle) continueTitle.textContent = qqRecent ? qqRecent.name : '继续听 QQ';
+    if (continueSub) continueSub.textContent = qqRecent ? (qqRecent.artist || 'QQ 音乐') : '最近 QQ 播放会出现在这里';
+    if (profileTitle) profileTitle.textContent = 'QQ 账号状态';
+    if (profileSub) profileSub.textContent = qqAccountStatusText();
+    if (libTitle) libTitle.textContent = qqFavorite ? (qqFavorite.name || 'QQ 我喜欢 / 收藏歌单') : 'QQ 我喜欢 / 收藏歌单';
+    if (libSub) libSub.textContent = qqFavorite
+      ? (((qqFavorite.trackCount || 0) ? qqFavorite.trackCount + ' 首 · ' : '') + (qqFavorite.subscribed ? '收藏歌单' : '我的歌单'))
+      : '同步后显示我喜欢或收藏歌单';
+    setHomeArt('home-weather-art', (qqPrimaryList && qqPrimaryList.cover) || qqAvatar, 280);
+    setHomeArt('home-daily-art', qqCover, 280);
+    setHomeArt('home-private-art', (qqRecent && qqRecent.cover) || qqCover, 280);
+    setHomeArt('home-continue-art', (qqRecent && qqRecent.cover) || qqCover, 280);
+    setHomeArt('home-profile-art', qqAvatar || qqCover, 280);
+    setHomeArt('home-library-art', (qqFavorite && qqFavorite.cover) || (qqSecondList && qqSecondList.cover) || qqCover, 280);
+    renderHomeTiles();
+    return;
+  }
   if (qishuiHome) {
     var qsLists = qishuiHomePlaylists();
     var qsMode = qishuiListenModeInfo();
@@ -16966,12 +17099,56 @@ function qishuiSearchQueryForMode(modeKey) {
 async function playHomeQishuiRecommend(modeKey) {
   await startQishuiModeRadio(modeKey || readQishuiListenMode());
 }
+function loadQQPlaylistFromHome(pl, fallbackTitle) {
+  if (!pl || !pl.id) return false;
+  loadPlaylistIntoQueueById(playlistPanelProviderId('qq', pl.id), true, pl.name || fallbackTitle || 'QQ 歌单');
+  return true;
+}
+function openHomeQQLibrary() {
+  homeSuppressed = false;
+  setHomeControlsLocked(false);
+  setSearchMode('qq');
+  setPlaylistProviderFilter('qq');
+  openPlaylistPanelTab('playlists', true);
+  if (qqLoginStatus && qqLoginStatus.loggedIn) {
+    refreshUserPlaylists(true);
+    showToast('正在同步 QQ 音乐歌单');
+  } else {
+    showLoginModal({ source: 'qq-home-library' });
+  }
+}
+function playHomeQQDaily() {
+  var lists = qqHomePlaylists();
+  var recent = qqRecentRecord();
+  if (loadQQPlaylistFromHome(lists[0], 'QQ 今日开播')) return;
+  if (recent) {
+    playHomeRecent(recent);
+    return;
+  }
+  runHomeSearch(qqSearchSeed(), 'qq');
+}
+function playHomeQQSearch() {
+  runHomeSearch(qqSearchSeed(), 'qq');
+}
+function playHomeQQFavorite() {
+  var favorite = qqFavoritePlaylist();
+  if (loadQQPlaylistFromHome(favorite, 'QQ 我喜欢 / 收藏歌单')) return;
+  runHomeSearch('QQ 音乐 我喜欢', 'qq');
+}
+function openHomeQQAccount() {
+  if (qqLoginStatus && qqLoginStatus.loggedIn) showUserModal();
+  else showLoginModal({ source: 'qq-home-account' });
+}
 async function playHomeDaily() {
   homeForcedOpen = false;
   homeSuppressed = false;
   setHomeControlsLocked(false);
   if (homeUsesQishuiLogic()) {
     await playHomeQishuiRecommend(readQishuiListenMode());
+    return;
+  }
+  if (homeUsesQQLogic()) {
+    playHomeQQDaily();
     return;
   }
   if (!hasAnyPlatformLogin() && !homeDiscoverState.loggedIn) {
@@ -16999,6 +17176,10 @@ async function playHomePrivateRadio() {
   setHomeControlsLocked(false);
   if (homeUsesQishuiLogic()) {
     openQishuiModeModal();
+    return;
+  }
+  if (homeUsesQQLogic()) {
+    playHomeQQSearch();
     return;
   }
   if (!hasAnyPlatformLogin() && !homeDiscoverState.loggedIn) {
@@ -17035,6 +17216,12 @@ function playHomeSong(index) {
       return;
     }
     playHomeQishuiRecommend(index === 2 ? 'familiar' : readQishuiListenMode());
+    return;
+  }
+  if (homeUsesQQLogic()) {
+    if (index === 0) playHomeQQDaily();
+    else if (index === 1) playHomeQQSearch();
+    else playHomeQQFavorite();
     return;
   }
   var song = homeDiscoverState.songs[index];
@@ -17099,6 +17286,10 @@ function openHomeLibrary() {
     openPlaylistPanelTab('playlists', true);
     refreshUserPlaylists(true);
     showToast('正在同步汽水音乐歌单');
+    return;
+  }
+  if (homeUsesQQLogic()) {
+    openHomeQQLibrary();
     return;
   }
   if (!hasAnyPlatformLogin() && !homeDiscoverState.loggedIn) {
@@ -17227,6 +17418,14 @@ function songFromListenRecord(record) {
   };
 }
 async function playHomeRecent(record) {
+  if (!record && homeUsesQQLogic()) {
+    record = qqRecentRecord();
+    if (!record) {
+      runHomeSearch('QQ 音乐 推荐', 'qq');
+      showToast('还没有 QQ 听歌记录');
+      return;
+    }
+  }
   record = record || homeListenSummary().recent;
   if (!record) {
     showToast('还没有听歌记录');
@@ -17248,6 +17447,10 @@ async function playHomeRecent(record) {
 function openHomeInsight() {
   if (homeUsesQishuiLogic()) {
     playHomeQishuiRecommend('fresh');
+    return;
+  }
+  if (homeUsesQQLogic()) {
+    openHomeQQAccount();
     return;
   }
   var summary = homeListenSummary();
@@ -17286,6 +17489,30 @@ function handleHomeTileClick(index) {
   if (!item) return;
   if (item.kind === 'weatherSong') playWeatherSong(item.index);
   else if (item.kind === 'recent') playHomeRecent(item.record);
+  else if (item.kind === 'qqPlaylist') {
+    if (item.playlist) {
+      var qqPid = playlistPanelProviderId('qq', item.playlist.id);
+      loadPlaylistIntoQueueById(qqPid, true, item.playlist.name || 'QQ 歌单');
+    } else {
+      openHomeQQLibrary();
+    }
+  }
+  else if (item.kind === 'qqRecentSong') {
+    if (!item.record && !item.song) {
+      runHomeSearch('QQ 音乐 推荐', 'qq');
+      return;
+    }
+    activeRadioContext = null;
+    var qqRecentSong = songFromListenRecord(item.record || item.song);
+    playQueue = [cloneSong(qqRecentSong || item.song)];
+    currentIdx = 0;
+    safeRenderQueuePanel('qq-home-recent-song');
+    safeShelfRebuild('qq-home-recent-song', true);
+    forcePlaybackControlsInteractive();
+    playQueueAt(0).catch(function(e){ console.warn('[QQHomeRecentSong]', e); });
+  }
+  else if (item.kind === 'qqArtist') runHomeSearch(item.query || (item.song && item.song.artist) || 'QQ 音乐', 'qq');
+  else if (item.kind === 'qqSearch') runHomeSearch(item.query || 'QQ 音乐 推荐', 'qq');
   else if (item.kind === 'qishuiRecommend') playHomeQishuiRecommend(readQishuiListenMode());
   else if (item.kind === 'qishuiMode') openQishuiModeModal();
   else if (item.kind === 'qishuiFresh') playHomeQishuiRecommend('fresh');
@@ -19579,6 +19806,7 @@ async function playQueueAt(idx, opts) {
   try {
     markPlayPhase('source-url');
     var providerKey = songProviderKey(song);
+    setShelfPlaylistProvider(providerKey, 'playback-provider-switch');
     var isQQPlayback = providerKey === 'qq';
     var isQishuiPlayback = providerKey === 'qishui';
     var requestedQuality = normalizePlaybackQuality(opts.qualityOverride || playbackQuality);
@@ -20817,6 +21045,15 @@ function applyPlaylistProviderFilter(provider, opts) {
   else renderPlaylistProviderFilter();
 }
 function setPlaylistProviderFilter(provider) {
+  provider = provider === 'netease' || provider === 'qq' || provider === 'qishui' ? provider : 'all';
+  if (provider === 'all') setShelfPlaylistProvider('all', 'playlist-provider-all');
+  if (provider !== 'all' && hasPlatformLogin(provider)) {
+    activeAccountProvider = provider;
+    renderUserBtn();
+    updateUserModalUi();
+    syncHomeToAccountProvider(provider, { openHome: false });
+    return;
+  }
   applyPlaylistProviderFilter(provider, { animate: true });
 }
 function syncPlaylistFilterToAccountProvider(provider) {
@@ -20825,6 +21062,73 @@ function syncPlaylistFilterToAccountProvider(provider) {
     if (!hasPlatformLogin(provider)) return;
   }
   applyPlaylistProviderFilter(provider, { animate: true, switchVisiblePanel: true });
+}
+function openHomeForAccountProvider(provider, opts) {
+  opts = opts || {};
+  provider = normalizeProviderKey(provider);
+  homeSuppressed = false;
+  homeForcedOpen = true;
+  setHomeControlsLocked(true);
+  if (shelfManager && shelfManager.hasOpenContent && shelfManager.hasOpenContent()) safeShelfCloseContent('account-provider-home');
+  if (typeof setShelfPinnedOpen === 'function') setShelfPinnedOpen(false, true);
+  togglePlaylistPanel(false);
+  setPeek(document.getElementById('playlist-panel'), false, 'pl');
+  setPeek(document.getElementById('fx-panel'), false, 'fx');
+  setPeek(document.getElementById('search-area'), true, 'search');
+  if (typeof setFocusZone === 'function') setFocusZone(null, true);
+  if (orbit && orbit.focus) orbit.focus.active = false;
+  updateEmptyHomeVisibility({ forceLoad: provider === 'netease' });
+  if (!opts.silent) showToast('已切到' + platformMeta(provider).label + ' Home');
+}
+function searchModeForAccountProvider(provider) {
+  provider = normalizeProviderKey(provider);
+  if (provider === 'qq' || provider === 'qishui' || provider === 'netease') return provider;
+  return 'song';
+}
+function applyHomeStateForAccountProvider(provider) {
+  provider = normalizeProviderKey(provider);
+  homeDiscoverState.error = '';
+  if (provider === 'qishui') {
+    homeDiscoverState.loading = false;
+    homeDiscoverState.loaded = true;
+    homeDiscoverState.loggedIn = !!(qishuiLoginStatus && qishuiLoginStatus.loggedIn);
+    homeDiscoverState.mode = 'qishui';
+    homeDiscoverState.songs = [];
+    homeDiscoverState.playlists = [];
+    homeDiscoverState.podcasts = [];
+    homeDiscoverState.updatedAt = Date.now();
+    return;
+  }
+  if (provider === 'qq') {
+    homeDiscoverState.loading = false;
+    homeDiscoverState.loaded = true;
+    homeDiscoverState.loggedIn = !!(qqLoginStatus && qqLoginStatus.loggedIn);
+    homeDiscoverState.mode = 'qq';
+    homeDiscoverState.songs = [];
+    homeDiscoverState.playlists = [];
+    homeDiscoverState.podcasts = [];
+    homeDiscoverState.updatedAt = Date.now();
+    return;
+  }
+  homeDiscoverState.loaded = false;
+  homeDiscoverState.loggedIn = !!(loginStatus && loginStatus.loggedIn);
+  homeDiscoverState.mode = homeDiscoverState.loggedIn ? 'member' : 'starter';
+}
+function syncHomeToAccountProvider(provider, opts) {
+  opts = opts || {};
+  provider = normalizeProviderKey(provider);
+  if (!hasPlatformLogin(provider)) return false;
+  syncPlaylistFilterToAccountProvider(provider);
+  setSearchMode(searchModeForAccountProvider(provider));
+  setShelfPlaylistProvider(provider, 'account-provider-switch');
+  applyHomeStateForAccountProvider(provider);
+  renderHomeDiscover();
+  if (opts.openHome !== false) openHomeForAccountProvider(provider, opts);
+  else if (emptyHomeActive) updateEmptyHomeVisibility({ forceLoad: provider === 'netease' });
+  if (provider === 'netease' && opts.loadDiscover !== false) {
+    loadHomeDiscover(true);
+  }
+  return true;
 }
 function growPlaylistPanelRenderLimit() {
   var total = filteredUserPlaylists().length;
@@ -25284,7 +25588,7 @@ function handleAccountProviderAction(provider) {
     activeAccountProvider = provider;
     renderUserBtn();
     updateUserModalUi();
-    syncPlaylistFilterToAccountProvider(provider);
+    syncHomeToAccountProvider(provider);
     return;
   }
   openProviderLogin(provider);
@@ -25305,7 +25609,7 @@ function setActiveAccountProvider(provider) {
   dualAccountMode = false;
   renderUserBtn();
   updateUserModalUi();
-  syncPlaylistFilterToAccountProvider(provider);
+  syncHomeToAccountProvider(provider);
 }
 function enableDualAccountView() {
   var logged = loggedProviderKeys();
