@@ -2151,6 +2151,173 @@ async function handleQishuiSearch(keywords, limit) {
     .slice(0, Math.max(1, Math.min(limit || 10, 20)));
 }
 
+const QISHUI_LISTEN_MODE_PROFILES = {
+  familiar: {
+    title: '熟悉模式',
+    summary: '多播常听歌手、收藏和熟悉旋律',
+    keywords: ['华语流行 热门', '经典流行', '常听歌曲', '抖音热歌'],
+    artistSuffixes: ['热门歌曲', '代表作'],
+    boost: ['经典', '热门', '精选', '原唱'],
+    avoid: ['翻唱', 'cover', '伴奏', 'remix'],
+  },
+  fresh: {
+    title: '新鲜模式',
+    summary: '减少重复，探索相近的新歌和新声音',
+    keywords: ['新歌推荐', '宝藏歌曲', '独立流行 新歌', '华语新歌'],
+    artistSuffixes: ['相似歌曲', '新歌'],
+    boost: ['新歌', '宝藏', '独立', '发现'],
+    avoid: ['经典老歌', '怀旧'],
+  },
+  dj: {
+    title: 'DJ模式',
+    summary: '强节奏、电子、remix 和串烧感',
+    keywords: ['DJ 热歌', '电子 音乐', 'remix 舞曲', '车载 DJ'],
+    artistSuffixes: ['DJ remix', '电子 remix'],
+    boost: ['dj', 'remix', '舞曲', '电子', '车载', '串烧'],
+    avoid: ['纯音乐 助眠', '钢琴 睡眠'],
+  },
+  sleep: {
+    title: '助眠模式',
+    summary: '低刺激、轻人声和睡前氛围',
+    keywords: ['助眠音乐', '睡前轻音乐', '白噪音 放松', '轻音乐 安眠'],
+    artistSuffixes: ['轻音乐', '安静'],
+    boost: ['助眠', '睡眠', '安静', '轻音乐', '白噪音', '钢琴'],
+    avoid: ['dj', 'remix', '劲爆', '健身', '蹦迪'],
+  },
+  chill: {
+    title: 'Chill 放松',
+    summary: '放空休息，低到中能量的轻松陪伴',
+    keywords: ['chill 放松', 'lofi 中文', '轻松 R&B', 'city pop 放松'],
+    artistSuffixes: ['chill', '放松'],
+    boost: ['chill', 'lofi', '放松', 'r&b', '轻松', '慵懒'],
+    avoid: ['劲爆', '硬曲', '健身'],
+  },
+  workout: {
+    title: '动感健身',
+    summary: '运动时维持能量和节奏',
+    keywords: ['动感健身', '运动燃歌', '跑步音乐', '高能节奏'],
+    artistSuffixes: ['高能', '运动'],
+    boost: ['健身', '运动', '跑步', '燃', '高能', '节奏'],
+    avoid: ['助眠', '睡眠', '安静', '催眠'],
+  },
+  focus: {
+    title: '专注模式',
+    summary: '学习工作时降低歌词干扰',
+    keywords: ['专注学习 纯音乐', 'lofi study', '工作背景音乐', '轻音乐 专注'],
+    artistSuffixes: ['纯音乐', '专注'],
+    boost: ['专注', '学习', '工作', '纯音乐', 'lofi', '钢琴'],
+    avoid: ['dj', 'remix', '蹦迪', '劲爆'],
+  },
+  happy: {
+    title: '快乐时光',
+    summary: '明亮、开心、适合聚会的流行歌',
+    keywords: ['快乐歌单', '开心流行', '聚会热歌', '元气歌曲'],
+    artistSuffixes: ['热门 快乐', '元气'],
+    boost: ['快乐', '开心', '元气', '甜', '聚会', '热歌'],
+    avoid: ['伤感', 'emo', '失眠', '悲伤'],
+  },
+};
+
+function normalizeQishuiListenMode(mode) {
+  const key = String(mode || '').trim().toLowerCase();
+  if (key === 'default' || key === 'recommend') return 'familiar';
+  return QISHUI_LISTEN_MODE_PROFILES[key] ? key : 'familiar';
+}
+
+function splitQishuiSeedList(value, limit) {
+  return String(value || '')
+    .split(/[,，|]/)
+    .map(item => item.trim())
+    .filter(Boolean)
+    .slice(0, limit || 6);
+}
+
+function qishuiModeText(song) {
+  return String([
+    song && song.name,
+    song && song.artist,
+    song && song.album,
+  ].filter(Boolean).join(' ')).toLowerCase();
+}
+
+function scoreQishuiModeSong(song, profile, opts) {
+  const text = qishuiModeText(song);
+  let score = 0;
+  (profile.boost || []).forEach(word => {
+    if (word && text.includes(String(word).toLowerCase())) score += 8;
+  });
+  (profile.avoid || []).forEach(word => {
+    if (word && text.includes(String(word).toLowerCase())) score -= 18;
+  });
+  (opts.seedArtists || []).forEach(artist => {
+    const raw = String(artist || '').toLowerCase();
+    if (raw && text.includes(raw)) score += opts.mode === 'fresh' ? -10 : 22;
+  });
+  (opts.excludeIds || []).forEach(id => {
+    if (id && String(song && song.id) === String(id)) score -= 80;
+  });
+  (opts.recentTitles || []).forEach(title => {
+    const raw = String(title || '').toLowerCase();
+    if (raw && text.includes(raw)) score -= opts.mode === 'fresh' ? 60 : 8;
+  });
+  if (song && song.cover) score += 2;
+  return score;
+}
+
+function qishuiModeQueries(profile, opts) {
+  const queries = [];
+  const seedArtists = opts.seedArtists || [];
+  seedArtists.slice(0, opts.mode === 'fresh' ? 2 : 4).forEach(artist => {
+    (profile.artistSuffixes || []).forEach(suffix => queries.push((artist + ' ' + suffix).trim()));
+  });
+  (profile.keywords || []).forEach(q => queries.push(q));
+  (opts.recentTitles || []).slice(0, 2).forEach(title => {
+    if (opts.mode !== 'fresh') queries.push(title);
+  });
+  return Array.from(new Set(queries.map(q => String(q || '').trim()).filter(Boolean))).slice(0, 8);
+}
+
+async function handleQishuiModeRadio(params) {
+  const mode = normalizeQishuiListenMode(params.mode);
+  const profile = QISHUI_LISTEN_MODE_PROFILES[mode];
+  const limit = Math.max(8, Math.min(Number(params.limit) || 24, 36));
+  const opts = {
+    mode,
+    seedArtists: splitQishuiSeedList(params.artists, 6),
+    recentTitles: splitQishuiSeedList(params.recent, 6),
+    excludeIds: splitQishuiSeedList(params.exclude, 80),
+  };
+  const queries = qishuiModeQueries(profile, opts);
+  const pool = [];
+  for (let i = 0; i < queries.length && pool.length < limit * 2; i++) {
+    try {
+      const songs = await handleQishuiSearch(queries[i], 12);
+      songs.forEach(song => pool.push({ ...song, qishuiModeSource: queries[i] }));
+    } catch (err) {
+      console.warn('[QishuiModeRadio]', mode, queries[i], err.message);
+    }
+  }
+  const songs = uniqueSongsByKey(pool)
+    .map((song, index) => ({
+      song,
+      score: scoreQishuiModeSong(song, profile, opts) - index * 0.01,
+    }))
+    .filter(item => item.score > -50)
+    .sort((a, b) => b.score - a.score)
+    .map(item => item.song)
+    .slice(0, limit);
+  return {
+    provider: 'qishui',
+    mode,
+    title: profile.title,
+    summary: profile.summary,
+    source: 'qishui-mode-search',
+    queries,
+    songs,
+    updatedAt: Date.now(),
+  };
+}
+
 function qishuiTrackV2Url(trackId) {
   return qishuiUrl('/track_v2', {
     track_id: trackId,
@@ -4521,6 +4688,23 @@ const server = http.createServer(async (req, res) => {
       sendJSON(res, { provider: 'qishui', songs });
     } catch (err) {
       console.error('[QishuiSearch]', err);
+      sendJSON(res, { provider: 'qishui', error: err.message, songs: [] }, 500);
+    }
+    return;
+  }
+
+  if (pn === '/api/qishui/mode/radio') {
+    try {
+      const info = await handleQishuiModeRadio({
+        mode: url.searchParams.get('mode') || '',
+        limit: url.searchParams.get('limit') || '',
+        artists: url.searchParams.get('artists') || '',
+        recent: url.searchParams.get('recent') || '',
+        exclude: url.searchParams.get('exclude') || '',
+      });
+      sendJSON(res, info);
+    } catch (err) {
+      console.error('[QishuiModeRadio]', err);
       sendJSON(res, { provider: 'qishui', error: err.message, songs: [] }, 500);
     }
     return;

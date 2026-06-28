@@ -198,9 +198,9 @@ body.empty-home-active.diy-mode #search-area:not(.has-results) #search-mode-tabs
 .tag-podcast{display:inline-block;font-size:9px;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.58);font-weight:750;letter-spacing:.7px;flex-shrink:0}
 .tag-source{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.045);font-size:8.5px;font-weight:800;letter-spacing:.55px;line-height:1;flex-shrink:0}
 .tag-source.netease{color:#ffd8dd;border-color:rgba(217,91,103,.30);background:rgba(217,91,103,.075)}
-.tag-source.qq{color:#f0ffc8;border-color:rgba(191,214,107,.30);background:rgba(191,214,107,.075)}
+.tag-source.qq{color:#dffefa;border-color:rgba(0,245,212,.30);background:rgba(0,245,212,.075)}
 .tag-source.qishui{color:#dffbff;border-color:rgba(128,237,255,.32);background:rgba(128,237,255,.085)}
-.search-result.qq-source:hover{background:rgba(191,214,107,.052)}
+.search-result.qq-source:hover{background:rgba(0,245,212,.052)}
 .search-result.netease-source:hover{background:rgba(217,91,103,.045)}
 .search-result.qishui-source:hover{background:rgba(128,237,255,.052)}
 .podcast-result-head{display:flex;align-items:center;gap:10px;padding:11px 13px 9px;border-bottom:1px solid rgba(255,255,255,.04);background:rgba(255,255,255,.025)}
@@ -450,8 +450,8 @@ body.desktop-shell.empty-home-active.controls-visible #empty-home{bottom:126px}
 #user-btn.logged-out:hover{color:#fff2bd;border-color:rgba(244,210,138,.56);background:rgba(244,210,138,.11);box-shadow:0 16px 42px rgba(244,210,138,.10),inset 0 1px 0 rgba(255,255,255,.10)}
 #user-btn .login-word{display:block;line-height:1;transform:translateY(.5px)}
 #user-btn.logged-in{padding:0 16px 0 4px;min-width:0;color:#fff;border-color:rgba(244,210,138,0.52);background:rgba(244,210,138,0.07);box-shadow:0 0 0 1px rgba(244,210,138,.08),0 14px 42px rgba(0,0,0,.28)}
-#user-btn.multi-account{height:auto;min-width:0;padding:0;flex-direction:column;align-items:flex-end;gap:7px;border:0;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
-#user-btn.multi-account:hover{background:transparent;border-color:transparent;box-shadow:none;transform:none;color:#fff}
+#user-btn.multi-account{height:44px;min-width:0;width:auto;padding:0;border:0;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+#user-btn.multi-account:hover{background:transparent;border-color:transparent;box-shadow:none;transform:translateY(-1px);color:#fff}
 #user-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,0.1)}
 #user-vip-tag{font-size:9px;padding:2px 6px;border-radius:3px;background:linear-gradient(135deg,#fff3c2,var(--champagne),#c9963d);color:#201303;font-weight:800;letter-spacing:.5px;box-shadow:0 0 12px rgba(244,210,138,.24)}
 #user-vip-tag.qq{background:linear-gradient(135deg,#e7fff9,#00f5d4,#61a8ff);color:#03100f;box-shadow:0 0 12px rgba(0,245,212,.22)}
@@ -460,12 +460,21 @@ body.desktop-shell.empty-home-active.controls-visible #empty-home{bottom:126px}
 .account-source-dot.qq{background:var(--source-qq);color:var(--source-qq)}
 .account-source-dot.qishui{background:var(--source-qishui);color:var(--source-qishui)}
 .top-account-pill{height:44px;min-width:0;display:flex;align-items:center;gap:8px;padding:0 14px 0 4px;border-radius:24px;border:1px solid rgba(244,210,138,.52);background:rgba(244,210,138,.07);box-shadow:0 0 0 1px rgba(244,210,138,.08),0 14px 42px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08);transition:background .22s,border-color .22s,box-shadow .22s,transform .22s}
-#user-btn.multi-account:hover .top-account-pill{background:rgba(244,210,138,.10);border-color:rgba(244,210,138,.62);box-shadow:0 0 0 1px rgba(244,210,138,.10),0 16px 44px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.10)}
+#user-btn.multi-account:hover .top-account-pill,#user-btn.multi-account:hover .top-account-cluster{background:rgba(244,210,138,.10);border-color:rgba(244,210,138,.62);box-shadow:0 0 0 1px rgba(244,210,138,.10),0 16px 44px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.10)}
 .top-account-pill img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.08);flex-shrink:0}
 .top-account-name{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:650;color:rgba(255,255,255,.92)}
 .top-account-vip{font-size:9px;padding:2px 6px;border-radius:3px;background:linear-gradient(135deg,#fff3c2,var(--champagne),#c9963d);color:#201303;font-weight:800;letter-spacing:.5px;box-shadow:0 0 12px rgba(244,210,138,.24);flex-shrink:0}
 .top-account-vip.qq{background:linear-gradient(135deg,#e7fff9,#00f5d4,#61a8ff);color:#03100f;box-shadow:0 0 12px rgba(0,245,212,.22)}
 .top-account-vip.qishui{background:linear-gradient(135deg,#e8fdff,#80edff,#57d8c9);color:#031014;box-shadow:0 0 12px rgba(128,237,255,.20)}
+.top-account-cluster{height:44px;min-width:184px;max-width:min(238px,calc(100vw - 112px));display:flex;align-items:center;gap:10px;padding:0 12px 0 9px;border-radius:24px;border:1px solid rgba(244,210,138,.46);background:rgba(244,210,138,.07);box-shadow:0 0 0 1px rgba(244,210,138,.08),0 14px 42px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08);transition:background .22s,border-color .22s,box-shadow .22s,transform .22s}
+.top-account-avatar-stack{display:flex;align-items:center;width:58px;flex:0 0 auto}
+.top-account-avatar-stack img{width:30px;height:30px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.08);border:1px solid rgba(10,10,14,.82);box-shadow:0 6px 16px rgba(0,0,0,.28)}
+.top-account-avatar-stack img+img{margin-left:-12px}
+.top-account-summary{min-width:0;display:flex;flex-direction:column;align-items:flex-start;line-height:1.12}
+.top-account-summary-main{font-size:12px;font-weight:780;color:rgba(255,255,255,.94);white-space:nowrap;max-width:104px;overflow:hidden;text-overflow:ellipsis}
+.top-account-summary-sub{margin-top:3px;font-size:9.5px;color:rgba(255,255,255,.46);white-space:nowrap;max-width:124px;overflow:hidden;text-overflow:ellipsis}
+.top-account-count{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);font-size:10px;font-weight:800;color:rgba(244,210,138,.90);flex:0 0 auto}
+@media (max-width:620px){.top-account-cluster{min-width:132px}.top-account-summary-sub{display:none}.top-account-avatar-stack{width:48px}.top-account-summary-main{max-width:72px}}
 .update-entry{position:relative;display:none;width:44px;height:44px;border-radius:50%;border:1px solid rgba(244,210,138,.26);background:radial-gradient(circle at 50% 36%,rgba(244,210,138,.14),rgba(255,255,255,.030) 58%,rgba(157,184,207,.020));color:rgba(255,239,190,.94);align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(22px) saturate(1.25);-webkit-backdrop-filter:blur(22px) saturate(1.25);box-shadow:0 14px 38px rgba(0,0,0,.30),0 0 22px rgba(244,210,138,.08),0 0 0 1px rgba(255,255,255,.026),inset 0 1px 0 rgba(255,255,255,.09);transition:border-color .22s,background .22s,color .22s,box-shadow .22s,transform .22s;overflow:visible}
 .update-entry.available{display:flex}
 .update-entry:hover{color:#fff8df;border-color:rgba(244,210,138,.58);background:radial-gradient(circle at 50% 34%,rgba(244,210,138,.22),rgba(255,255,255,.045) 58%,rgba(157,184,207,.028));box-shadow:0 16px 44px rgba(0,0,0,.34),0 0 26px rgba(244,210,138,.18),0 0 18px rgba(157,184,207,.08),inset 0 1px 0 rgba(255,255,255,.13)}
@@ -808,19 +817,19 @@ body.login-guide-active #login-guide-canvas{opacity:1}
 .login-platform-tabs button:hover,.user-platform-tabs button:hover{color:rgba(255,255,255,.82)}
 .login-platform-tabs button.active,.user-platform-tabs button.active{color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 10px 26px rgba(0,0,0,.20)}
 .login-platform-tabs button.netease.active,.user-platform-tabs button.netease.active{background:rgba(217,91,103,.16);color:#ffd7dc}
-.login-platform-tabs button.qq.active,.user-platform-tabs button.qq.active{background:rgba(191,214,107,.16);color:#f3ffd1}
+.login-platform-tabs button.qq.active,.user-platform-tabs button.qq.active{background:rgba(0,245,212,.13);color:#dffefa}
 .login-platform-tabs button.qishui.active,.user-platform-tabs button.qishui.active{background:rgba(128,237,255,.15);color:#dffbff}
 .user-platform-tabs button.both.active{background:rgba(244,210,138,.14);color:#fff0bf}
 .qr-shell{position:relative;width:200px;height:200px;margin:0 auto 16px;border-radius:16px}
 #qr-img{width:200px;height:200px;background:#fff;border-radius:14px;margin:0 auto 16px;display:block;padding:10px;box-shadow:0 16px 42px rgba(0,0,0,.32),0 0 0 1px rgba(244,210,138,.18)}
 .qr-shell #qr-img{margin:0}
-.qr-shell.web-login-preview{display:flex;align-items:center;justify-content:center;padding:14px;background:radial-gradient(circle at 50% 42%,rgba(191,214,107,.22),transparent 46%),rgba(255,255,255,.035);border:1px solid rgba(191,214,107,.26);box-shadow:0 16px 42px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.08)}
+.qr-shell.web-login-preview{display:flex;align-items:center;justify-content:center;padding:14px;background:radial-gradient(circle at 50% 42%,rgba(0,245,212,.20),transparent 46%),rgba(255,255,255,.035);border:1px solid rgba(0,245,212,.24);box-shadow:0 16px 42px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.08)}
 .qr-shell.web-login-preview.netease-preview{background:radial-gradient(circle at 50% 42%,rgba(217,91,103,.22),transparent 46%),rgba(255,255,255,.035);border-color:rgba(217,91,103,.28)}
 .qr-shell.web-login-preview.qishui-preview{background:radial-gradient(circle at 50% 42%,rgba(128,237,255,.20),transparent 46%),rgba(255,255,255,.035);border-color:rgba(128,237,255,.28)}
 .qr-shell.web-login-preview #qr-img{display:none}
-.qq-login-mark{display:none;width:100%;height:100%;border-radius:12px;border:1px solid rgba(191,214,107,.30);align-items:center;justify-content:center;flex-direction:column;gap:8px;color:rgba(243,255,209,.88);background:linear-gradient(135deg,rgba(191,214,107,.10),rgba(157,184,207,.05));cursor:pointer;font-family:inherit;outline:none;transition:transform .22s,border-color .22s,background .22s,box-shadow .22s}
+.qq-login-mark{display:none;width:100%;height:100%;border-radius:12px;border:1px solid rgba(0,245,212,.30);align-items:center;justify-content:center;flex-direction:column;gap:8px;color:rgba(223,254,250,.88);background:linear-gradient(135deg,rgba(0,245,212,.10),rgba(157,184,207,.05));cursor:pointer;font-family:inherit;outline:none;transition:transform .22s,border-color .22s,background .22s,box-shadow .22s}
 .qr-shell.web-login-preview .qq-login-mark{display:flex}
-.qq-login-mark:hover{transform:translateY(-1px);border-color:rgba(191,214,107,.54);background:linear-gradient(135deg,rgba(191,214,107,.16),rgba(157,184,207,.08));box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 16px 38px rgba(0,0,0,.22)}
+.qq-login-mark:hover{transform:translateY(-1px);border-color:rgba(0,245,212,.54);background:linear-gradient(135deg,rgba(0,245,212,.16),rgba(157,184,207,.08));box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 16px 38px rgba(0,0,0,.22)}
 .qr-shell.netease-preview .qq-login-mark{border-color:rgba(217,91,103,.34);color:#ffd7dc;background:linear-gradient(135deg,rgba(217,91,103,.10),rgba(244,210,138,.05))}
 .qr-shell.netease-preview .qq-login-mark:hover{border-color:rgba(217,91,103,.58);background:linear-gradient(135deg,rgba(217,91,103,.16),rgba(244,210,138,.08))}
 .qr-shell.qishui-preview .qq-login-mark{border-color:rgba(128,237,255,.34);color:#dffbff;background:linear-gradient(135deg,rgba(128,237,255,.11),rgba(0,245,212,.045))}
@@ -828,10 +837,10 @@ body.login-guide-active #login-guide-canvas{opacity:1}
 .qq-login-mark:disabled{opacity:.66;cursor:wait;transform:none}
 .qq-login-mark b{font-size:22px;letter-spacing:.08em}
 .qq-login-mark span{font-size:10.5px;color:rgba(255,255,255,.46);letter-spacing:.5px}
-.qq-cookie-panel{display:none;margin-top:12px;padding:12px;border-radius:14px;border:1px solid rgba(191,214,107,.18);background:rgba(255,255,255,.035)}
+.qq-cookie-panel{display:none;margin-top:12px;padding:12px;border-radius:14px;border:1px solid rgba(0,245,212,.18);background:rgba(255,255,255,.035)}
 .qq-cookie-panel.show{display:block}
 .qq-cookie-input{width:100%;height:74px;resize:none;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(0,0,0,.22);color:rgba(255,255,255,.82);padding:10px 11px;font-family:inherit;font-size:11px;line-height:1.45;outline:none}
-.qq-cookie-input:focus{border-color:rgba(191,214,107,.42);box-shadow:0 0 0 1px rgba(191,214,107,.10)}
+.qq-cookie-input:focus{border-color:rgba(0,245,212,.42);box-shadow:0 0 0 1px rgba(0,245,212,.10)}
 .qq-cookie-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px}
 .qq-cookie-note{font-size:10.5px;color:rgba(255,255,255,.36);line-height:1.45;text-align:left}
 .qq-cookie-panel .modal-btn{padding:8px 12px;white-space:nowrap}
@@ -840,14 +849,32 @@ body.login-guide-active #login-guide-canvas{opacity:1}
 #qr-status{font-size:12px;color:rgba(255,255,255,0.7);min-height:18px;margin-bottom:14px;letter-spacing:.3px}
 #qr-status.scan{color:#7ee2a8}
 #qr-status.fail{color:#f08080}
-#qr-status.preview{color:rgba(191,214,107,.86)}
+#qr-status.preview{color:rgba(0,245,212,.82)}
 .account-provider-chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;margin-bottom:10px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);font-size:10.5px;letter-spacing:.5px;color:rgba(255,255,255,.58)}
 .account-provider-chip.netease{border-color:rgba(217,91,103,.26);color:#ffd7dc;background:rgba(217,91,103,.08)}
-.account-provider-chip.qq{border-color:rgba(191,214,107,.26);color:#f3ffd1;background:rgba(191,214,107,.08)}
+.account-provider-chip.qq{border-color:rgba(0,245,212,.26);color:#dffefa;background:rgba(0,245,212,.08)}
 .account-provider-chip.qishui{border-color:rgba(128,237,255,.26);color:#dffbff;background:rgba(128,237,255,.08)}
+.account-provider-chip.both{border-color:rgba(244,210,138,.26);color:#fff0bf;background:rgba(244,210,138,.08)}
+.account-stack{display:grid;grid-template-columns:72px minmax(0,1fr);gap:14px;align-items:center;margin:4px 0 14px;text-align:left}
+.account-stack #user-modal-avatar{margin:0!important}
+.account-stack-main{min-width:0}
+.account-name{font-size:16px;font-weight:780;color:rgba(255,255,255,.94);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-meta{margin-top:5px;font-size:11px;line-height:1.45;color:rgba(255,255,255,.46);letter-spacing:.2px}
+.account-platform-list{display:grid;gap:8px;margin:12px 0 14px}
+.account-platform-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;min-height:52px;padding:9px 10px;border-radius:13px;border:1px solid rgba(255,255,255,.075);background:rgba(255,255,255,.035);text-align:left;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
+.account-platform-row:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);transform:translateY(-1px)}
+.account-platform-row.active{border-color:rgba(244,210,138,.34);background:rgba(244,210,138,.075)}
+.account-platform-row.offline{opacity:.62}
+.account-platform-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.08)}
+.account-platform-title{display:flex;align-items:center;gap:7px;min-width:0;font-size:12.5px;font-weight:760;color:rgba(255,255,255,.90)}
+.account-platform-title span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-platform-sub{margin-top:3px;font-size:10.5px;color:rgba(255,255,255,.42);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.account-platform-state{height:22px;display:flex;align-items:center;padding:0 8px;border-radius:999px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.045);font-size:10px;font-weight:760;color:rgba(255,255,255,.58);white-space:nowrap}
+.account-platform-row.active .account-platform-state{border-color:rgba(244,210,138,.28);background:rgba(244,210,138,.10);color:#fff0bf}
 .account-modal-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
 .account-modal-actions .modal-btn{padding:8px 10px}
 .account-hint{margin-top:10px;font-size:11px;line-height:1.45;color:rgba(255,255,255,.38)}
+@media (max-width:520px){.account-stack{grid-template-columns:1fr;justify-items:center;text-align:center}.account-stack-main{text-align:center}.account-modal-actions{grid-template-columns:1fr}.account-platform-row{grid-template-columns:auto 1fr}.account-platform-state{grid-column:2;justify-self:start}}
 .modal .btn-row{display:flex;gap:10px;justify-content:center;margin-top:16px}
 .dual-login-modal .btn-row{flex-wrap:wrap}
 .modal-btn{padding:8px 20px;font-size:12.5px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#fff;cursor:pointer;letter-spacing:.5px;transition:all .2s;font-family:inherit}
@@ -957,6 +984,23 @@ body.login-guide-active #login-guide-canvas{opacity:1}
 .local-beat-status.warn{color:#f4d28a}
 .local-beat-status.fail{color:#ff8f9d}
 .local-beat-modal.analyzing .local-beat-tab{pointer-events:none;opacity:.64}
+.qishui-mode-modal{width:min(760px,94vw);max-width:min(760px,94vw);padding:28px;text-align:left}
+.qishui-mode-modal h2{text-align:left;margin-bottom:8px}
+.qishui-mode-intro{font-size:12.5px;line-height:1.62;color:rgba(255,255,255,.56);margin-bottom:18px}
+.qishui-mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}
+.qishui-mode-card{min-height:82px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(255,255,255,.045);color:rgba(255,255,255,.88);font-family:inherit;text-align:left;padding:14px 14px 13px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s,box-shadow .18s}
+.qishui-mode-card:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.07)}
+.qishui-mode-card.active{border-color:rgba(126,226,168,.44);background:rgba(126,226,168,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 16px 42px rgba(0,0,0,.24)}
+.qishui-mode-head{display:flex;align-items:center;gap:10px;min-width:0}
+.qishui-mode-icon{width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;color:#fff;flex:0 0 auto}
+.qishui-mode-card.active .qishui-mode-icon{background:rgba(126,226,168,.18);color:#7ee2a8}
+.qishui-mode-name{font-size:14px;font-weight:780;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qishui-mode-desc{margin-top:8px;font-size:11.5px;line-height:1.45;color:rgba(255,255,255,.48)}
+.qishui-mode-status{min-height:18px;font-size:11.5px;color:rgba(126,226,168,.82);letter-spacing:.2px}
+.qishui-mode-status.warn{color:#f4d28a}
+.qishui-mode-status.fail{color:#ff8f9d}
+@media (min-width:760px){.qishui-mode-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:540px){.qishui-mode-modal{padding:22px}.qishui-mode-grid{grid-template-columns:1fr}.qishui-mode-card{min-height:74px}}
 .custom-lyric-modal{width:min(560px,92vw);max-width:min(560px,92vw);padding:28px;text-align:left}
 .custom-lyric-modal h2{text-align:center;margin-bottom:14px}
 .custom-lyric-track{padding:11px 12px;margin-bottom:12px;border-radius:12px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.035)}
@@ -1313,9 +1357,16 @@ body.desktop-shell.diy-mode #bottom-bar.stage-mode{left:50%;width:min(1080px,cal
 .qi-act button.liked,.song-action-btn.liked{color:#ff7a90;background:rgba(255,122,144,.10)}
 .song-action-btn{width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);color:rgba(255,255,255,.58);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;font-size:14px;line-height:1}
 .song-action-btn:hover{background:rgba(0,245,212,.10);border-color:rgba(0,245,212,.32);color:#eafffb;transform:translateY(-1px)}
-.queue-chip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);font-size:10.5px;color:rgba(255,255,255,.65)}
+.queue-chip{display:inline-flex;align-items:center;height:26px;max-width:100%;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.03);font-size:10.5px;color:rgba(255,255,255,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .queue-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 4px}
 .queue-toolbar .fx-mini-btn{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;line-height:1}
+.playlist-toolbar{display:grid;grid-template-columns:1fr;align-items:stretch;gap:8px;margin:8px 0 10px}
+.playlist-toolbar-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.playlist-toolbar-title{min-width:0;flex:1 1 auto}
+.playlist-toolbar-refresh{height:26px!important;padding:0 11px!important;font-size:11px!important;flex:0 0 auto}
+.playlist-source-filter{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%;min-width:0}
+.playlist-source-filter .fx-mini-btn{height:28px;min-width:0;width:100%;padding:0 7px;font-size:10.5px;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.playlist-source-filter .fx-mini-btn.active{border-color:rgba(var(--fc-accent-rgb),.38);background:rgba(var(--fc-accent-rgb),.12);color:#fff}
 .pl-card{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.04);transition:all .2s;cursor:pointer;margin-bottom:7px;will-change:transform,opacity}
 .pl-card:hover{background:rgba(255,255,255,.06)}
 .pl-card img{width:44px;height:44px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,.06);flex-shrink:0}
@@ -1421,6 +1472,9 @@ html.control-glass-svg-ok .icon-btn,html.control-glass-svg-ok #fx-fab,html.contr
 #playlist-panel .pl-card.podcast-card:hover{border-color:rgba(var(--fc-accent-rgb),.20)!important;background:rgba(var(--fc-accent-rgb),.070)!important;box-shadow:none!important}
 #playlist-panel .pl-card.podcast-child{background:rgba(255,255,255,.03)!important}
 #playlist-panel .pl-section-label{color:rgba(0,245,212,.50)!important;text-shadow:none!important}
+#playlist-panel .pl-section-label[data-provider="netease"]{color:rgba(217,91,103,.72)!important}
+#playlist-panel .pl-section-label[data-provider="qq"]{color:rgba(0,245,212,.72)!important}
+#playlist-panel .pl-section-label[data-provider="qishui"]{color:rgba(128,237,255,.72)!important}
 #playlist-panel .pl-detail-head{border-bottom:1px solid rgba(255,255,255,.06)!important}
 #playlist-panel .pl-detail-play{background:rgba(var(--fc-accent-rgb),.10)!important;border:1px solid rgba(var(--fc-accent-rgb),.32)!important;box-shadow:none!important;color:#fff!important}
 #playlist-panel .pl-detail-row{background:rgba(255,255,255,.025)!important;border:1px solid rgba(255,255,255,.04)!important;box-shadow:none!important}
@@ -1429,6 +1483,7 @@ html.control-glass-svg-ok .icon-btn,html.control-glass-svg-ok #fx-fab,html.contr
 #playlist-panel .fx-mini-btn:hover{background:rgba(255,255,255,.1)!important;color:#fff!important;box-shadow:none!important}
 #playlist-panel .fx-mini-btn.active,#playlist-panel .fx-mini-btn.ghost.active{border-color:rgba(var(--fc-accent-rgb),.38)!important;background:rgba(var(--fc-accent-rgb),.10)!important;color:#fff!important;box-shadow:none!important}
 #playlist-panel .fx-mini-btn.ghost{background:transparent!important}
+#playlist-panel .playlist-source-filter .fx-mini-btn.active{border-color:rgba(var(--fc-accent-rgb),.42)!important;background:rgba(var(--fc-accent-rgb),.13)!important;color:#fff!important}
 #playlist-panel .song-action-btn{background:rgba(255,255,255,.045)!important;border:1px solid rgba(255,255,255,.11)!important;box-shadow:none!important;color:rgba(255,255,255,.58)!important}
 #playlist-panel .song-action-btn:hover{background:rgba(var(--fc-accent-rgb),.10)!important;border-color:rgba(var(--fc-accent-rgb),.32)!important;color:#fff!important;box-shadow:none!important}
 #playlist-panel .qi-act button{background:rgba(255,255,255,.06)!important;border:0!important;box-shadow:none!important;color:rgba(255,255,255,.55)!important}
@@ -1522,7 +1577,7 @@ html.control-glass-svg-ok #search-box{
   backdrop-filter:url(#mineradio-search-box-glass-filter) saturate(1)!important;
   -webkit-backdrop-filter:url(#mineradio-search-box-glass-filter) saturate(1)!important;
 }
-#home-btn,#upload-btn,#visual-guide-btn,#fx-fab,.top-account-pill,#top-right .icon-btn{
+#home-btn,#upload-btn,#visual-guide-btn,#fx-fab,.top-account-pill,.top-account-cluster,#top-right .icon-btn{
   background:var(--saved-button-glass-bg)!important;
   border-color:transparent!important;
   box-shadow:var(--saved-button-glass-shadow)!important;
@@ -1534,6 +1589,7 @@ html.control-glass-svg-ok #upload-btn,
 html.control-glass-svg-ok #visual-guide-btn,
 html.control-glass-svg-ok #fx-fab,
 html.control-glass-svg-ok .top-account-pill,
+html.control-glass-svg-ok .top-account-cluster,
 html.control-glass-svg-ok #top-right .icon-btn{
   backdrop-filter:var(--saved-button-glass-svg-filter)!important;
   -webkit-backdrop-filter:var(--saved-button-glass-svg-filter)!important;
@@ -1678,6 +1734,7 @@ html.control-glass-svg-ok #upload-btn,
 html.control-glass-svg-ok #visual-guide-btn,
 html.control-glass-svg-ok #fx-fab,
 html.control-glass-svg-ok .top-account-pill,
+html.control-glass-svg-ok .top-account-cluster,
 html.control-glass-svg-ok #top-right .icon-btn{
   backdrop-filter:var(--saved-button-glass-svg-filter)!important;
   -webkit-backdrop-filter:var(--saved-button-glass-svg-filter)!important;
@@ -1952,37 +2009,37 @@ html.control-glass-svg-ok #visual-guide-btn:hover{
 
     <div class="home-grid">
       <button class="home-card" data-home-tone="library" type="button" onclick="openHomeLibrary()">
-        <div class="home-card-label">Library</div>
+        <div class="home-card-label" id="home-weather-card-label">Library</div>
         <div class="home-card-title" id="home-weather-card-title">我的歌单</div>
         <div class="home-card-sub" id="home-weather-card-sub">打开左侧歌单库</div>
         <div class="home-card-art" id="home-weather-art"></div>
       </button>
       <button class="home-card" data-home-tone="mix" type="button" onclick="playHomeSong(0)">
-        <div class="home-card-label">Daily</div>
+        <div class="home-card-label" id="home-daily-label">Daily</div>
         <div class="home-card-title" id="home-daily-title">每日推荐</div>
         <div class="home-card-sub" id="home-daily-sub">登录后同步你的今日歌曲</div>
         <div class="home-card-art" id="home-daily-art"></div>
       </button>
       <button class="home-card" data-home-tone="playlist" type="button" onclick="playHomeSong(1)">
-        <div class="home-card-label">Song</div>
+        <div class="home-card-label" id="home-private-label">Song</div>
         <div class="home-card-title" id="home-private-title">私人电台</div>
         <div class="home-card-sub" id="home-private-sub">从你的推荐和歌单里开播</div>
         <div class="home-card-art" id="home-private-art"></div>
       </button>
       <button class="home-card" data-home-tone="mix" type="button" onclick="playHomeRecent()">
-        <div class="home-card-label">Continue</div>
+        <div class="home-card-label" id="home-continue-label">Continue</div>
         <div class="home-card-title" id="home-continue-title">继续听</div>
         <div class="home-card-sub" id="home-continue-sub">最近播放会出现在这里</div>
         <div class="home-card-art" id="home-continue-art"></div>
       </button>
       <button class="home-card" data-home-tone="local" type="button" onclick="openHomeInsight()">
-        <div class="home-card-label">Profile</div>
+        <div class="home-card-label" id="home-profile-label">Profile</div>
         <div class="home-card-title" id="home-profile-title">听歌画像</div>
         <div class="home-card-sub" id="home-profile-sub">播放几首后生成偏好</div>
         <div class="home-card-art" id="home-profile-art"></div>
       </button>
       <button class="home-card" data-home-tone="local" type="button" onclick="playHomeSong(2)">
-        <div class="home-card-label">Song</div>
+        <div class="home-card-label" id="home-library-label">Song</div>
         <div class="home-card-title" id="home-library-title">常听歌手</div>
         <div class="home-card-sub" id="home-library-sub">你的偏好会在这里汇总</div>
         <div class="home-card-art" id="home-library-art"></div>
@@ -2300,9 +2357,12 @@ html.control-glass-svg-ok #visual-guide-btn:hover{
     <div id="queue-list" class="queue-list"></div>
   </div>
   <div id="pl-pane" style="display:none">
-    <div class="queue-toolbar">
-      <div class="queue-chip">登录后显示网易云 / QQ 歌单</div>
-      <button class="fx-mini-btn ghost" onclick="refreshUserPlaylists(true)" style="height:26px;padding:0 10px;font-size:11px">刷新</button>
+    <div class="queue-toolbar playlist-toolbar">
+      <div class="playlist-toolbar-head">
+        <div id="playlist-source-chip" class="queue-chip playlist-toolbar-title">网易云 / QQ / 汽水</div>
+        <button class="fx-mini-btn ghost playlist-toolbar-refresh" onclick="refreshUserPlaylists(true)">刷新</button>
+      </div>
+      <div id="playlist-source-filter" class="playlist-source-filter"></div>
     </div>
     <div id="pl-list" style="margin-top:6px"></div>
   </div>
@@ -2518,19 +2578,24 @@ html.control-glass-svg-ok #visual-guide-btn:hover{
   <div class="modal dual-user-modal">
     <h2>账号信息</h2>
     <div id="account-provider-chip" class="account-provider-chip netease"><span class="account-source-dot netease"></span><span>网易云音乐</span></div>
-    <img id="user-modal-avatar" src="" style="width:72px;height:72px;border-radius:50%;margin:0 auto 12px;object-fit:cover;background:rgba(255,255,255,0.1);display:block">
-    <div id="user-modal-name" style="font-size:15px;margin-bottom:4px"></div>
-    <div id="user-modal-vip" style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:20px;letter-spacing:.5px"></div>
+    <div class="account-stack">
+      <img id="user-modal-avatar" src="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,0.1);display:block">
+      <div class="account-stack-main">
+        <div id="user-modal-name" class="account-name"></div>
+        <div id="user-modal-vip" class="account-meta"></div>
+      </div>
+    </div>
     <div class="user-platform-tabs" id="user-platform-tabs">
       <button id="user-provider-netease" class="netease active" type="button" onclick="setActiveAccountProvider('netease')">网易云</button>
       <button id="user-provider-qq" class="qq" type="button" onclick="setActiveAccountProvider('qq')">QQ 音乐</button>
       <button id="user-provider-qishui" class="qishui" type="button" onclick="setActiveAccountProvider('qishui')">汽水音乐</button>
       <button id="user-provider-both" class="both" type="button" onclick="enableDualAccountView()">多平台</button>
     </div>
+    <div id="account-platform-list" class="account-platform-list"></div>
     <div class="account-modal-actions">
-      <button id="account-add-netease" class="modal-btn" onclick="openProviderLogin('netease')">补登网易云</button>
-      <button id="account-add-qq" class="modal-btn" onclick="openProviderLogin('qq')">补登 QQ 音乐</button>
-      <button id="account-add-qishui" class="modal-btn" onclick="openProviderLogin('qishui')">补登汽水</button>
+      <button id="account-add-netease" class="modal-btn" onclick="handleAccountProviderAction('netease')">补登网易云</button>
+      <button id="account-add-qq" class="modal-btn" onclick="handleAccountProviderAction('qq')">补登 QQ 音乐</button>
+      <button id="account-add-qishui" class="modal-btn" onclick="handleAccountProviderAction('qishui')">补登汽水</button>
     </div>
     <div id="account-hint" class="account-hint">可切换右上角展示的平台；多平台会并排放已登录状态。</div>
     <div class="btn-row">
@@ -2575,6 +2640,19 @@ html.control-glass-svg-ok #visual-guide-btn:hover{
     <div id="collect-list" class="collect-list"></div>
     <div class="btn-row">
       <button class="modal-btn" onclick="closeCollectModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="qishui-mode-modal" class="modal-mask">
+  <div class="modal qishui-mode-modal">
+    <h2>听歌模式</h2>
+    <div class="qishui-mode-intro">选择一个场景后会从汽水音乐生成新的播放队列，并在播放到队尾前继续补歌。</div>
+    <div id="qishui-mode-grid" class="qishui-mode-grid"></div>
+    <div id="qishui-mode-status" class="qishui-mode-status"></div>
+    <div class="btn-row">
+      <button class="modal-btn" onclick="closeQishuiModeModal()">关闭</button>
+      <button class="modal-btn primary" onclick="startQishuiModeRadio(readQishuiListenMode(), { fromModal: true })">播放当前模式</button>
     </div>
   </div>
 </div>
@@ -2733,6 +2811,7 @@ var AUDIO_FADE_IN_MS = 460;
 var AUDIO_FADE_OUT_MS = 420;
 var AUDIO_SILENCE_GAIN = 0.0001;
 var userPlaylists = [], qqPlaylists = [], qishuiPlaylists = [], myPodcastCollections = [], myPodcastItems = {}, playlistCoverCache = {};
+var playlistProviderFilter = 'all';
 var CUSTOM_COVER_STORE_KEY = 'mineradio-custom-covers';
 var CUSTOM_LYRIC_STORE_KEY = 'mineradio-custom-lyrics-v1';
 var CUSTOM_LYRIC_PREF_STORE_KEY = 'mineradio-custom-lyric-prefs-v1';
@@ -2967,7 +3046,7 @@ function layoutFullscreenDiyZone() {
   var height = innerWidth < 720 ? 48 : 52;
   var left = innerWidth - 510;
   var top = 24;
-  var anchor = document.querySelector('#top-right .top-account-pill') || document.getElementById('user-btn') || document.getElementById('top-right');
+  var anchor = document.getElementById('user-btn') || document.getElementById('top-right');
   if (anchor) {
     var rect = anchor.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
@@ -2997,7 +3076,7 @@ function updateFullscreenDiyPeekFromPointer(x, y) {
     return;
   }
   var rect = layoutFullscreenDiyZone();
-  var anchor = document.querySelector('#top-right .top-account-pill') || document.getElementById('user-btn') || document.getElementById('top-right');
+  var anchor = document.getElementById('user-btn') || document.getElementById('top-right');
   var anchorRect = anchor ? anchor.getBoundingClientRect() : rect;
   var hitLeft = Math.min(rect.left, anchorRect.left) - 26;
   var hitRight = Math.max(rect.left + rect.width, anchorRect.right) + 26;
@@ -15946,9 +16025,294 @@ function homeListenSummary() {
   var totalPlays = Object.keys(listenStatsState.songs || {}).reduce(function(sum, key){ return sum + ((listenStatsState.songs[key] && listenStatsState.songs[key].plays) || 0); }, 0);
   return { recent: recent, topSong: topSong, topArtist: topArtist, totalPlays: totalPlays };
 }
+var QISHUI_LISTEN_MODE_KEY = 'mineradio-qishui-listen-mode';
+var QISHUI_LISTEN_MODES = [
+  { key: 'familiar', label: '熟悉模式', short: '熟', query: '华语流行 热门', desc: '多播常听歌手和熟悉旋律' },
+  { key: 'fresh', label: '新鲜模式', short: '新', query: '新歌推荐', desc: '减少重复，探索相近新声音' },
+  { key: 'dj', label: 'DJ模式', short: 'DJ', query: 'DJ 热歌', desc: '强节奏、remix 和串烧感' },
+  { key: 'sleep', label: '助眠模式', short: '眠', query: '助眠音乐', desc: '低刺激的睡前氛围' },
+  { key: 'chill', label: 'Chill 放松', short: 'Chill', query: 'chill 放松', desc: '低到中能量的轻松陪伴' },
+  { key: 'workout', label: '动感健身', short: '动', query: '动感健身', desc: '高能量运动节奏' },
+  { key: 'focus', label: '专注模式', short: '专', query: '专注学习 纯音乐', desc: '学习工作时降低歌词干扰' },
+  { key: 'happy', label: '快乐时光', short: '乐', query: '快乐歌单', desc: '明亮流行和聚会感' }
+];
+var qishuiListenState = {
+  active: false,
+  mode: readQishuiListenMode(),
+  queueId: '',
+  loading: false,
+  refillPromise: null,
+  seenKeys: [],
+  source: '',
+  updatedAt: 0
+};
+function listenRecordProvider(record) {
+  if (!record) return '';
+  var provider = record.sourceKey || record.provider || record.source || '';
+  if (!provider && record.type === 'qishui') provider = 'qishui';
+  if (!provider && record.type === 'qq') provider = 'qq';
+  if (!provider) provider = record.mid ? 'qq' : (record.id ? 'netease' : '');
+  return provider;
+}
+function homePreferredProvider() {
+  if (isQishuiModeRadioActive()) return 'qishui';
+  if (hasPlatformLogin(activeAccountProvider)) return activeAccountProvider;
+  if (qishuiLoginStatus && qishuiLoginStatus.loggedIn && !loginStatus.loggedIn && !qqLoginStatus.loggedIn) return 'qishui';
+  return firstLoggedProvider();
+}
+function homeUsesQishuiLogic() {
+  return homePreferredProvider() === 'qishui';
+}
+function qishuiHomePlaylists() {
+  var fromUser = (userPlaylists || []).filter(function(pl){ return pl && normalizeProviderKey(pl.provider || pl.source) === 'qishui'; });
+  return (qishuiPlaylists && qishuiPlaylists.length) ? qishuiPlaylists : fromUser;
+}
+function readQishuiListenMode() {
+  var saved = '';
+  try { saved = localStorage.getItem(QISHUI_LISTEN_MODE_KEY) || ''; } catch (e) {}
+  if (saved === 'default' || saved === 'recommend') saved = 'familiar';
+  return QISHUI_LISTEN_MODES.some(function(mode){ return mode.key === saved; }) ? saved : 'familiar';
+}
+function qishuiListenModeInfo(key) {
+  key = key || readQishuiListenMode();
+  return QISHUI_LISTEN_MODES.find(function(mode){ return mode.key === key; }) || QISHUI_LISTEN_MODES[0];
+}
+function setQishuiListenMode(key) {
+  var mode = qishuiListenModeInfo(key);
+  try { localStorage.setItem(QISHUI_LISTEN_MODE_KEY, mode.key); } catch (e) {}
+  if (qishuiListenState) qishuiListenState.mode = mode.key;
+  renderHomeDiscover();
+  return mode;
+}
+function cycleQishuiListenMode() {
+  var current = readQishuiListenMode();
+  var index = QISHUI_LISTEN_MODES.findIndex(function(mode){ return mode.key === current; });
+  var next = QISHUI_LISTEN_MODES[(index + 1 + QISHUI_LISTEN_MODES.length) % QISHUI_LISTEN_MODES.length];
+  var mode = setQishuiListenMode(next.key);
+  showToast('听歌模式: ' + mode.label);
+  return mode;
+}
+function qishuiModeIconMarkup(key) {
+  var paths = {
+    familiar: '<path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/>',
+    fresh: '<path d="M12 3l1.8 4.4L18 9.2l-4.2 1.8L12 15.4 10.2 11 6 9.2l4.2-1.8L12 3z"/><path d="M19 14l.9 2.1 2.1.9-2.1.9L19 20l-.9-2.1-2.1-.9 2.1-.9L19 14z"/>',
+    dj: '<path d="M4 15a8 8 0 0 1 16 0"/><path d="M4 15v2a3 3 0 0 0 3 3h1v-6H7a3 3 0 0 0-3 3"/><path d="M20 15v2a3 3 0 0 1-3 3h-1v-6h1a3 3 0 0 1 3 3"/><path d="M9 10h6"/>',
+    sleep: '<path d="M20 15.5A7.5 7.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5z"/><path d="M17 4h4l-4 4h4"/>',
+    chill: '<path d="M5 12c5-7 13-5 14-5-1 8-6 12-14 12 0-3 1-5 3-7"/><path d="M5 19c3-4 7-7 12-9"/>',
+    workout: '<path d="M13 5l3 3-3 3"/><path d="M16 8H8a4 4 0 0 0 0 8h8"/><path d="M11 19l-3-3 3-3"/>',
+    focus: '<path d="M4 5h7a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H4z"/><path d="M20 5h-7a3 3 0 0 0-3 3v11a3 3 0 0 1 3-3h7z"/>',
+    happy: '<circle cx="12" cy="12" r="8"/><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M8.5 14a4.6 4.6 0 0 0 7 0"/>'
+  };
+  return '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (paths[key] || paths.familiar) + '</svg>';
+}
+function setQishuiModeStatus(text, tone) {
+  var el = document.getElementById('qishui-mode-status');
+  if (!el) return;
+  el.textContent = text || '';
+  el.className = 'qishui-mode-status' + (tone ? ' ' + tone : '');
+}
+function renderQishuiModeGrid() {
+  var grid = document.getElementById('qishui-mode-grid');
+  if (!grid) return;
+  var current = readQishuiListenMode();
+  grid.innerHTML = QISHUI_LISTEN_MODES.map(function(mode){
+    return '<button class="qishui-mode-card' + (mode.key === current ? ' active' : '') + '" type="button" onclick="startQishuiModeRadio(&quot;' + escHtml(mode.key) + '&quot;, { fromModal: true })">' +
+      '<div class="qishui-mode-head"><span class="qishui-mode-icon">' + qishuiModeIconMarkup(mode.key) + '</span><span class="qishui-mode-name">' + escHtml(mode.label) + '</span></div>' +
+      '<div class="qishui-mode-desc">' + escHtml(mode.desc || '') + '</div>' +
+    '</button>';
+  }).join('');
+}
+function openQishuiModeModal() {
+  renderQishuiModeGrid();
+  setQishuiModeStatus('');
+  openGsapModal(document.getElementById('qishui-mode-modal'));
+}
+function closeQishuiModeModal() {
+  closeGsapModal(document.getElementById('qishui-mode-modal'));
+}
+function qishuiQueueSongKey(song) {
+  if (!song) return '';
+  var id = song.qishuiId || song.id || song.trackId || '';
+  if (id) return 'qishui:' + id;
+  var title = String(song.name || song.title || '').trim();
+  var artist = String(song.artist || '').trim();
+  return (title || artist) ? ('qishui-meta:' + (title + '|' + artist).toLowerCase()) : '';
+}
+function qishuiSongId(song) {
+  return song && (song.qishuiId || song.id || song.trackId || '') || '';
+}
+function rememberQishuiModeSongs(songs) {
+  var seen = qishuiListenState.seenKeys || [];
+  (songs || []).forEach(function(song){
+    var key = qishuiQueueSongKey(song);
+    if (key && seen.indexOf(key) < 0) seen.push(key);
+  });
+  qishuiListenState.seenKeys = seen.slice(-160);
+}
+function qishuiListenSeeds() {
+  var summary = homeListenSummary();
+  var artists = [];
+  var recent = [];
+  function addArtist(raw) {
+    String(raw || '').split(/\s*\/\s*|\s*,\s*|、|&| feat\.? | ft\.? /i).forEach(function(name){
+      name = name.trim();
+      if (name && artists.indexOf(name) < 0) artists.push(name);
+    });
+  }
+  if (summary.topArtist && summary.topArtist.name) addArtist(summary.topArtist.name);
+  if (summary.recent && summary.recent.artist) addArtist(summary.recent.artist);
+  if (summary.topSong && summary.topSong.artist) addArtist(summary.topSong.artist);
+  (listenStatsState.history || []).slice(0, 12).forEach(function(record){
+    if (listenRecordProvider(record) === 'qishui') {
+      addArtist(record.artist || '');
+      if (record.name && recent.indexOf(record.name) < 0) recent.push(record.name);
+    }
+  });
+  if (summary.recent && summary.recent.name && recent.indexOf(summary.recent.name) < 0) recent.unshift(summary.recent.name);
+  if (summary.topSong && summary.topSong.name && recent.indexOf(summary.topSong.name) < 0) recent.push(summary.topSong.name);
+  return { artists: artists.slice(0, 6), recent: recent.slice(0, 6) };
+}
+function qishuiModeRadioUrl(modeKey, limit) {
+  var seeds = qishuiListenSeeds();
+  var exclude = [];
+  playQueue.forEach(function(song){
+    var id = qishuiSongId(song);
+    if (id && exclude.indexOf(id) < 0) exclude.push(id);
+  });
+  (qishuiListenState.seenKeys || []).forEach(function(key){
+    var match = /^qishui:(.+)$/.exec(key);
+    if (match && exclude.indexOf(match[1]) < 0) exclude.push(match[1]);
+  });
+  return '/api/qishui/mode/radio?mode=' + encodeURIComponent(qishuiListenModeInfo(modeKey).key) +
+    '&limit=' + encodeURIComponent(limit || 24) +
+    '&artists=' + encodeURIComponent(seeds.artists.join(',')) +
+    '&recent=' + encodeURIComponent(seeds.recent.join(',')) +
+    '&exclude=' + encodeURIComponent(exclude.slice(-80).join(',')) +
+    '&t=' + Date.now();
+}
+async function loadQishuiModeSongs(modeKey, limit) {
+  var mode = qishuiListenModeInfo(modeKey);
+  var data = await apiJson(qishuiModeRadioUrl(mode.key, limit), { timeoutMs: 22000 });
+  var songs = (data && data.songs || []).map(function(song){
+    var cloned = cloneSong(song);
+    cloned.provider = 'qishui';
+    cloned.source = 'qishui';
+    cloned.type = cloned.type || 'qishui';
+    cloned.qishuiMode = mode.key;
+    cloned.qishuiModeLabel = mode.label;
+    return cloned;
+  }).filter(function(song){ return !!qishuiQueueSongKey(song); });
+  return { data: data || {}, mode: mode, songs: songs };
+}
+function qishuiModeRadioContext(mode, data) {
+  return {
+    type: 'qishui-mode-radio',
+    provider: 'qishui',
+    mode: mode.key,
+    title: mode.label,
+    source: data && data.source || 'qishui-mode-search'
+  };
+}
+async function startQishuiModeRadio(modeKey, opts) {
+  opts = opts || {};
+  if (qishuiListenState.loading && !opts.force) {
+    showToast('汽水模式正在加载');
+    return;
+  }
+  homeForcedOpen = false;
+  homeSuppressed = false;
+  setHomeControlsLocked(false);
+  var mode = setQishuiListenMode(modeKey || readQishuiListenMode());
+  qishuiListenState.active = true;
+  qishuiListenState.mode = mode.key;
+  qishuiListenState.queueId = mode.key + ':' + Date.now();
+  qishuiListenState.loading = true;
+  qishuiListenState.seenKeys = [];
+  setSearchMode('qishui');
+  renderQishuiModeGrid();
+  setQishuiModeStatus('正在生成 ' + mode.label + ' 队列...');
+  try {
+    var loaded = await loadQishuiModeSongs(mode.key, 24);
+    if (!loaded.songs.length) throw new Error('EMPTY_QISHUI_MODE');
+    activeRadioContext = qishuiModeRadioContext(mode, loaded.data);
+    playQueue = loaded.songs.map(function(song){
+      var cloned = cloneSong(song);
+      cloned.radioContext = activeRadioContext;
+      return cloned;
+    });
+    currentIdx = 0;
+    rememberQishuiModeSongs(playQueue);
+    qishuiListenState.source = loaded.data.source || '';
+    qishuiListenState.updatedAt = Date.now();
+    safeRenderQueuePanel('qishui-mode-radio');
+    safeShelfRebuild('qishui-mode-radio', true);
+    forcePlaybackControlsInteractive();
+    closeQishuiModeModal();
+    showToast(mode.label + ' 已开播');
+    await playQueueAt(0, { context: activeRadioContext });
+  } catch (err) {
+    console.warn('[QishuiModeRadio]', err);
+    qishuiListenState.active = false;
+    setQishuiModeStatus('模式队列生成失败，已切到汽水搜索。', 'fail');
+    runHomeSearch(mode.query || '汽水音乐 推荐', 'qishui');
+  } finally {
+    qishuiListenState.loading = false;
+    if (!opts.fromModal) setQishuiModeStatus('');
+    renderHomeDiscover();
+  }
+}
+function appendQishuiModeSongs(songs) {
+  var existing = {};
+  playQueue.forEach(function(song){
+    var key = qishuiQueueSongKey(song);
+    if (key) existing[key] = true;
+  });
+  var added = 0;
+  (songs || []).forEach(function(song){
+    var key = qishuiQueueSongKey(song);
+    if (!key || existing[key]) return;
+    existing[key] = true;
+    var cloned = cloneSong(song);
+    cloned.radioContext = activeRadioContext;
+    playQueue.push(cloned);
+    added += 1;
+  });
+  if (added) {
+    rememberQishuiModeSongs(playQueue.slice(-added));
+    safeRenderQueuePanel('qishui-mode-refill');
+    safeShelfRebuild('qishui-mode-refill');
+  }
+  return added;
+}
+function isQishuiModeRadioActive() {
+  return !!(qishuiListenState && qishuiListenState.active && activeRadioContext && activeRadioContext.type === 'qishui-mode-radio');
+}
+function ensureQishuiModeQueueAhead() {
+  if (!isQishuiModeRadioActive() || qishuiListenState.loading || qishuiListenState.refillPromise) return qishuiListenState.refillPromise || Promise.resolve(0);
+  if (playQueue.length - currentIdx > 4) return Promise.resolve(0);
+  qishuiListenState.loading = true;
+  qishuiListenState.refillPromise = loadQishuiModeSongs(qishuiListenState.mode, 18).then(function(loaded){
+    return appendQishuiModeSongs(loaded.songs);
+  }).catch(function(err){
+    console.warn('[QishuiModeRefill]', err);
+    return 0;
+  }).finally(function(){
+    qishuiListenState.loading = false;
+    qishuiListenState.refillPromise = null;
+  });
+  return qishuiListenState.refillPromise;
+}
+function setHomeCardLabel(id, text) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+function qishuiRecentRecord(summary) {
+  var recent = summary && summary.recent;
+  return listenRecordProvider(recent) === 'qishui' ? recent : null;
+}
 function fallbackHomeTiles() {
   return [
-    { kind: 'login', title: '登录同步歌单', sub: '网易云 / QQ 音乐' },
+    { kind: 'login', title: '登录同步歌单', sub: '网易云 / QQ / 汽水' },
     { kind: 'search', title: '搜索一首歌', sub: '原唱优先', query: '' },
     { kind: 'local', title: '导入本地音乐', sub: '本地文件也能可视化' },
     { kind: 'podcastSearch', title: '搜索播客', sub: '长内容 / 电台' },
@@ -15997,38 +16361,58 @@ function renderHomeTiles() {
   if (!row) return;
   var tiles = [];
   var loggedOutHome = !homeDiscoverState.loggedIn && !hasAnyPlatformLogin();
+  var qishuiHome = homeUsesQishuiLogic();
   var weatherSongs = homeWeatherRadioState.radio && homeWeatherRadioState.radio.songs || [];
   var summary = homeListenSummary();
-  if (summary.recent && tiles.length < 5) {
-    tiles.push({ kind: 'recent', title: summary.recent.name || '继续听', sub: summary.recent.artist || summary.recent.source || '', cover: summary.recent.cover, record: summary.recent });
-  }
-  if (summary.topArtist && tiles.length < 5) {
-    tiles.push({ kind: 'profile', title: summary.topArtist.name, sub: '常听歌手 · ' + summary.topArtist.plays + ' 次', query: summary.topArtist.name });
-  }
-  if (!loggedOutHome) {
-    homeDiscoverState.songs.slice(0, Math.max(0, 4 - tiles.length)).forEach(function(song, i){
-      tiles.push({ kind: 'song', index: i, song: song, title: song.name || '今日歌曲', sub: song.artist || songSourceLabel(song) });
+  if (qishuiHome) {
+    var qMode = qishuiListenModeInfo();
+    var qsRecent = qishuiRecentRecord(summary);
+    var qsLists = qishuiHomePlaylists();
+    tiles.push({ kind: 'qishuiRecommend', title: '推荐', sub: '按 ' + qMode.label + ' 开播', tone: 'daily' });
+    tiles.push({ kind: 'qishuiMode', title: '听歌模式', sub: '8 个常用模式 · 当前 ' + qMode.label, tone: 'search' });
+    if (qsRecent && tiles.length < 5) {
+      tiles.push({ kind: 'recent', title: qsRecent.name || '继续听', sub: qsRecent.artist || '汽水音乐', cover: qsRecent.cover, record: qsRecent });
+    }
+    qsLists.slice(0, Math.max(0, 5 - tiles.length)).forEach(function(pl, i){
+      tiles.push({ kind: 'qishuiPlaylist', index: i, title: pl.name || '汽水歌单', sub: (pl.trackCount ? pl.trackCount + ' 首' : '汽水音乐'), cover: pl.cover, tone: 'playlist' });
     });
-    homeDiscoverState.playlists.slice(0, Math.max(0, 5 - tiles.length)).forEach(function(pl, i){
-      tiles.push({ kind: 'playlist', index: i, title: pl.name || '推荐歌单', sub: (pl.trackCount ? pl.trackCount + ' 首' : 'Playlist') + (pl.playCount ? ' · ' + compactHomeCount(pl.playCount) + ' 播放' : ''), cover: pl.cover });
-    });
+    if (tiles.length < 5) tiles.push({ kind: 'qishuiFresh', title: '新鲜推荐', sub: '减少重复歌曲', tone: 'guide' });
+    if (tiles.length < 5) tiles.push({ kind: 'qishuiFamiliar', title: '熟悉推荐', sub: '多播常听偏好', tone: 'local' });
+    if (tiles.length < 5) tiles.push({ kind: 'qishuiSearch', title: '汽水搜索', sub: '搜索播放可免登录', tone: 'search' });
+  } else {
+    if (summary.recent && tiles.length < 5) {
+      tiles.push({ kind: 'recent', title: summary.recent.name || '继续听', sub: summary.recent.artist || summary.recent.source || '', cover: summary.recent.cover, record: summary.recent });
+    }
+    if (summary.topArtist && tiles.length < 5) {
+      tiles.push({ kind: 'profile', title: summary.topArtist.name, sub: '常听歌手 · ' + summary.topArtist.plays + ' 次', query: summary.topArtist.name });
+    }
+    if (!loggedOutHome) {
+      homeDiscoverState.songs.slice(0, Math.max(0, 4 - tiles.length)).forEach(function(song, i){
+        tiles.push({ kind: 'song', index: i, song: song, title: song.name || '今日歌曲', sub: song.artist || songSourceLabel(song) });
+      });
+      homeDiscoverState.playlists.slice(0, Math.max(0, 5 - tiles.length)).forEach(function(pl, i){
+        tiles.push({ kind: 'playlist', index: i, title: pl.name || '推荐歌单', sub: (pl.trackCount ? pl.trackCount + ' 首' : 'Playlist') + (pl.playCount ? ' · ' + compactHomeCount(pl.playCount) + ' 播放' : ''), cover: pl.cover });
+      });
+      if (tiles.length < 5) {
+        homeDiscoverState.podcasts.slice(0, 5 - tiles.length).forEach(function(p, i){
+          tiles.push({ kind: 'podcast', index: i, title: p.name || '热门播客', sub: p.djName || p.category || 'Podcast', cover: p.cover });
+        });
+      }
+    }
     if (tiles.length < 5) {
-      homeDiscoverState.podcasts.slice(0, 5 - tiles.length).forEach(function(p, i){
-        tiles.push({ kind: 'podcast', index: i, title: p.name || '热门播客', sub: p.djName || p.category || 'Podcast', cover: p.cover });
+      weatherSongs.slice(0, 5 - tiles.length).forEach(function(song, i){
+        tiles.push({ kind: 'weatherSong', index: i, song: song, title: song.name || '天气电台歌曲', sub: song.artist || songSourceLabel(song) });
       });
     }
   }
-  if (tiles.length < 5) {
-    weatherSongs.slice(0, 5 - tiles.length).forEach(function(song, i){
-      tiles.push({ kind: 'weatherSong', index: i, song: song, title: song.name || '天气电台歌曲', sub: song.artist || songSourceLabel(song) });
-    });
-  }
   if (!tiles.length) tiles = fallbackHomeTiles();
   tiles = tiles.slice(0, 5);
-  if (title) title.textContent = summary.recent ? '接着听' : (loggedOutHome ? '先从这里开始' : '你的歌单与推荐');
+  if (title) title.textContent = qishuiHome ? '汽水音乐' : (summary.recent ? '接着听' : (loggedOutHome ? '先从这里开始' : '你的歌单与推荐'));
   if (note) {
     var liveNote = homeDiscoverState.updatedAt ? '刚刚更新 · 点击即可播放' : '点击即可播放';
-    note.textContent = homeDiscoverState.loading ? '正在整理推荐' : (loggedOutHome && !weatherSongs.length ? '不会自动拉取外部推荐' : (homeDiscoverState.error ? '离线精选' : liveNote));
+    note.textContent = qishuiHome
+      ? (qishuiLoginStatus.loggedIn ? '推荐 / 听歌模式 / 汽水歌单' : '搜索可免登录，登录后同步歌单')
+      : (homeDiscoverState.loading ? '正在整理推荐' : (loggedOutHome && !weatherSongs.length ? '不会自动拉取外部推荐' : (homeDiscoverState.error ? '离线精选' : liveNote)));
   }
   row.innerHTML = tiles.map(function(item, i){
     var cover = homeTileCover(item);
@@ -16046,16 +16430,20 @@ function renderHomeTiles() {
 function renderHomeDiscover() {
   var sub = document.getElementById('home-subtitle');
   var loggedOutHome = !homeDiscoverState.loggedIn && !hasAnyPlatformLogin();
+  var qishuiHome = homeUsesQishuiLogic();
   var weather = homeWeatherRadioState.weather;
   var radio = homeWeatherRadioState.radio;
   var weatherLocation = weather && weather.location && weather.location.name || homeWeatherRadioState.city || '上海';
   var weatherTitle = document.getElementById('home-weather-title');
   var weatherKicker = document.getElementById('home-weather-kicker');
   var weatherMeta = document.getElementById('home-weather-meta');
-  if (weatherTitle) weatherTitle.textContent = '我的音乐库';
-  if (weatherKicker) weatherKicker.textContent = 'Mineradio · Your Library';
+  if (weatherTitle) weatherTitle.textContent = qishuiHome ? '汽水音乐' : '我的音乐库';
+  if (weatherKicker) weatherKicker.textContent = qishuiHome ? 'Mineradio · Qishui' : 'Mineradio · Your Library';
   if (sub) {
-    if (loggedOutHome) sub.textContent = '登录后会把你的歌单、常听歌手和最近播放放在这里；也可以直接搜索或导入本地音乐。';
+    if (qishuiHome) sub.textContent = qishuiLoginStatus.loggedIn
+      ? '从汽水歌单、推荐和听歌模式开始，播放策略跟随汽水音乐。'
+      : '汽水音乐搜索可免登录；登录后会同步汽水歌单并保留听歌模式。';
+    else if (loggedOutHome) sub.textContent = '登录后会把你的歌单、常听歌手和最近播放放在这里；也可以直接搜索或导入本地音乐。';
     else sub.textContent = '从你的歌单、最近播放和常听歌手开始，天气电台放在需要氛围的时候再开。';
   }
   if (weatherMeta) {
@@ -16089,6 +16477,43 @@ function renderHomeDiscover() {
   var profileSub = document.getElementById('home-profile-sub');
   var libTitle = document.getElementById('home-library-title');
   var libSub = document.getElementById('home-library-sub');
+  setHomeCardLabel('home-weather-card-label', 'Library');
+  setHomeCardLabel('home-daily-label', qishuiHome ? 'Recommend' : 'Daily');
+  setHomeCardLabel('home-private-label', qishuiHome ? 'Mode' : 'Song');
+  setHomeCardLabel('home-continue-label', 'Continue');
+  setHomeCardLabel('home-profile-label', qishuiHome ? 'Fresh' : 'Profile');
+  setHomeCardLabel('home-library-label', qishuiHome ? 'Familiar' : 'Song');
+  if (qishuiHome) {
+    var qsLists = qishuiHomePlaylists();
+    var qsMode = qishuiListenModeInfo();
+    var qsRecent = qishuiRecentRecord(summary);
+    var qsPrimaryList = qsLists[0] || null;
+    var qsSecondList = qsLists[1] || qsPrimaryList;
+    var qsAvatar = providerAvatarSrc('qishui', qishuiLoginStatus);
+    var qsCover = (qsPrimaryList && qsPrimaryList.cover) || (qsRecent && qsRecent.cover) || qsAvatar;
+    if (weatherCardTitle) weatherCardTitle.textContent = '汽水歌单';
+    if (weatherCardSub) weatherCardSub.textContent = qishuiLoginStatus.loggedIn
+      ? (qsLists.length ? (qsLists.length + ' 个已同步歌单') : '同步汽水账号歌单')
+      : '登录后同步汽水歌单';
+    if (dailyTitle) dailyTitle.textContent = '推荐';
+    if (dailySub) dailySub.textContent = '按 ' + qsMode.label + ' 听歌模式开播';
+    if (privateTitle) privateTitle.textContent = '听歌模式';
+    if (privateSub) privateSub.textContent = '当前 ' + qsMode.label + ' · ' + (qsMode.desc || '8 个常用模式');
+    if (continueTitle) continueTitle.textContent = qsRecent ? qsRecent.name : '继续听';
+    if (continueSub) continueSub.textContent = qsRecent ? (qsRecent.artist || '汽水音乐') : '汽水播放记录会出现在这里';
+    if (profileTitle) profileTitle.textContent = '新鲜推荐';
+    if (profileSub) profileSub.textContent = '减少重复歌曲，探索相近曲风';
+    if (libTitle) libTitle.textContent = '熟悉推荐';
+    if (libSub) libSub.textContent = summary.topArtist ? ('围绕 ' + summary.topArtist.name + ' 和常听偏好') : '多播熟悉歌手和收藏偏好';
+    setHomeArt('home-weather-art', (qsPrimaryList && qsPrimaryList.cover) || qsAvatar, 280);
+    setHomeArt('home-daily-art', qsCover, 280);
+    setHomeArt('home-private-art', (qsSecondList && qsSecondList.cover) || qsCover, 280);
+    setHomeArt('home-continue-art', qsRecent && qsRecent.cover || qsCover, 280);
+    setHomeArt('home-profile-art', summary.topSong && summary.topSong.cover || qsCover, 280);
+    setHomeArt('home-library-art', qsRecent && qsRecent.cover || summary.topSong && summary.topSong.cover || qsCover, 280);
+    renderHomeTiles();
+    return;
+  }
   if (weatherCardTitle) weatherCardTitle.textContent = '我的歌单';
   if (weatherCardSub) {
     weatherCardSub.textContent = playlistItem ? (((playlistItem.trackCount || 0) ? playlistItem.trackCount + ' 首 · ' : '') + (playlistItem.creator || '打开左侧歌单库')) : '打开左侧歌单库';
@@ -16516,10 +16941,39 @@ async function waitForHomeDiscoverIdle(timeout) {
     await new Promise(function(resolve){ setTimeout(resolve, 80); });
   }
 }
+function qishuiPlaylistMatchesMode(pl, modeKey) {
+  var name = String(pl && (pl.name || pl.title) || '').toLowerCase();
+  if (!name) return false;
+  if (modeKey === 'fresh') return /新|推荐|发现|每日|日推|雷达|私人|fresh|discover|daily/i.test(name);
+  if (modeKey === 'familiar') return /喜欢|收藏|红心|常听|我喜欢|like|favorite|favourite/i.test(name);
+  return /推荐|每日|日推|雷达|私人|discover|daily/i.test(name);
+}
+function pickQishuiPlaylistForMode(lists, modeKey) {
+  lists = lists || [];
+  if (!lists.length) return null;
+  return lists.find(function(pl){ return qishuiPlaylistMatchesMode(pl, modeKey); }) || lists[0];
+}
+function qishuiSearchQueryForMode(modeKey) {
+  var mode = qishuiListenModeInfo(modeKey);
+  var summary = homeListenSummary();
+  var qsRecent = qishuiRecentRecord(summary);
+  if (mode.key === 'familiar' && summary.topArtist && summary.topArtist.name) return summary.topArtist.name;
+  if (mode.key === 'familiar' && qsRecent && qsRecent.artist) return qsRecent.artist;
+  if (mode.key === 'fresh') return '新歌推荐';
+  if (qsRecent && (qsRecent.artist || qsRecent.name)) return qsRecent.artist || qsRecent.name;
+  return mode.query || '汽水音乐 推荐';
+}
+async function playHomeQishuiRecommend(modeKey) {
+  await startQishuiModeRadio(modeKey || readQishuiListenMode());
+}
 async function playHomeDaily() {
   homeForcedOpen = false;
   homeSuppressed = false;
   setHomeControlsLocked(false);
+  if (homeUsesQishuiLogic()) {
+    await playHomeQishuiRecommend(readQishuiListenMode());
+    return;
+  }
   if (!hasAnyPlatformLogin() && !homeDiscoverState.loggedIn) {
     showLoginModal({ source: 'home-daily' });
     return;
@@ -16543,6 +16997,10 @@ async function playHomePrivateRadio() {
   homeForcedOpen = false;
   homeSuppressed = false;
   setHomeControlsLocked(false);
+  if (homeUsesQishuiLogic()) {
+    openQishuiModeModal();
+    return;
+  }
   if (!hasAnyPlatformLogin() && !homeDiscoverState.loggedIn) {
     showLoginModal({ source: 'home-private' });
     return;
@@ -16571,6 +17029,14 @@ function playHomeSong(index) {
   homeForcedOpen = false;
   homeSuppressed = false;
   setHomeControlsLocked(false);
+  if (homeUsesQishuiLogic()) {
+    if (index === 1) {
+      openQishuiModeModal();
+      return;
+    }
+    playHomeQishuiRecommend(index === 2 ? 'familiar' : readQishuiListenMode());
+    return;
+  }
   var song = homeDiscoverState.songs[index];
   if (!song) {
     if (index > 0) playHomePrivateRadio();
@@ -16621,6 +17087,20 @@ function openHomeThirdCard() {
   openHomePodcast(0);
 }
 function openHomeLibrary() {
+  if (homeUsesQishuiLogic()) {
+    homeSuppressed = false;
+    setHomeControlsLocked(false);
+    setSearchMode('qishui');
+    if (!qishuiLoginStatus.loggedIn) {
+      runHomeSearch('', 'qishui');
+      showToast('汽水搜索可免登录');
+      return;
+    }
+    openPlaylistPanelTab('playlists', true);
+    refreshUserPlaylists(true);
+    showToast('正在同步汽水音乐歌单');
+    return;
+  }
   if (!hasAnyPlatformLogin() && !homeDiscoverState.loggedIn) {
     openHomeProductGuide();
     return;
@@ -16766,6 +17246,10 @@ async function playHomeRecent(record) {
   await playQueueAt(0);
 }
 function openHomeInsight() {
+  if (homeUsesQishuiLogic()) {
+    playHomeQishuiRecommend('fresh');
+    return;
+  }
   var summary = homeListenSummary();
   if (summary.topArtist && summary.topArtist.name) {
     runHomeSearch(summary.topArtist.name);
@@ -16802,6 +17286,16 @@ function handleHomeTileClick(index) {
   if (!item) return;
   if (item.kind === 'weatherSong') playWeatherSong(item.index);
   else if (item.kind === 'recent') playHomeRecent(item.record);
+  else if (item.kind === 'qishuiRecommend') playHomeQishuiRecommend(readQishuiListenMode());
+  else if (item.kind === 'qishuiMode') openQishuiModeModal();
+  else if (item.kind === 'qishuiFresh') playHomeQishuiRecommend('fresh');
+  else if (item.kind === 'qishuiFamiliar') playHomeQishuiRecommend('familiar');
+  else if (item.kind === 'qishuiSearch') runHomeSearch('', 'qishui');
+  else if (item.kind === 'qishuiPlaylist') {
+    var qsList = qishuiHomePlaylists()[item.index];
+    if (qsList && qsList.id) loadPlaylistIntoQueueById('qishui:' + qsList.id, true, qsList.name || '汽水歌单');
+    else openHomeLibrary();
+  }
   else if (item.kind === 'profile') openHomeInsight();
   else if (item.kind === 'song') playHomeSong(item.index);
   else if (item.kind === 'login') showLoginModal({ source: 'home-tile' });
@@ -18731,6 +19225,9 @@ var firstPlayDone = false;
 
 function playbackProviderLabel(song) {
   var provider = songProviderKey(song);
+  return playbackProviderLabelForKey(provider);
+}
+function playbackProviderLabelForKey(provider) {
   if (provider === 'qishui') return '汽水音乐';
   return provider === 'qq' ? 'QQ 音乐' : '网易云';
 }
@@ -18828,21 +19325,36 @@ function isSameTitleArtist(source, candidate) {
   if (!a.length || !b.length) return false;
   return a.some(function(name){ return b.indexOf(name) >= 0; });
 }
-function alternatePlaybackProvider(song) {
-  return songProviderKey(song) === 'qq' ? 'netease' : 'qq';
+function fallbackPlaybackProviders(song) {
+  var provider = songProviderKey(song);
+  if (provider === 'qishui') return ['qq', 'netease'];
+  if (provider === 'qq') return ['netease', 'qishui'];
+  return ['qq', 'qishui'];
 }
-async function searchAlternatePlatformSong(song) {
-  var target = alternatePlaybackProvider(song);
+function fallbackProviderLabels(providers) {
+  return (providers || []).map(playbackProviderLabelForKey).join(' / ');
+}
+function fallbackProviderSearchUrl(provider, query) {
+  if (provider === 'qq') return '/api/qq/search?keywords=' + encodeURIComponent(query) + '&limit=8';
+  if (provider === 'qishui') return '/api/qishui/search?keywords=' + encodeURIComponent(query) + '&limit=8';
+  return '/api/search?keywords=' + encodeURIComponent(query) + '&limit=12';
+}
+async function searchAlternatePlatformSong(song, providers) {
+  providers = providers && providers.length ? providers : fallbackPlaybackProviders(song);
   var artist = artistNameParts(song)[0] || '';
   var query = [song.name || song.title || '', song.artist || artist].filter(Boolean).join(' ').trim();
   if (!query) return null;
-  var url = target === 'qq'
-    ? '/api/qq/search?keywords=' + encodeURIComponent(query) + '&limit=8'
-    : '/api/search?keywords=' + encodeURIComponent(query) + '&limit=12';
-  var data = await apiJson(url);
-  var list = data && (data.songs || data.result || []);
-  for (var i = 0; i < list.length; i++) {
-    if (isSameTitleArtist(song, list[i])) return cloneSong(list[i]);
+  for (var p = 0; p < providers.length; p++) {
+    var provider = providers[p];
+    try {
+      var data = await apiJson(fallbackProviderSearchUrl(provider, query));
+      var list = data && (data.songs || data.result || []);
+      for (var i = 0; i < list.length; i++) {
+        if (isSameTitleArtist(song, list[i])) return cloneSong(list[i]);
+      }
+    } catch (e) {
+      console.warn('[SourceFallbackSearch]', provider, e);
+    }
   }
   return null;
 }
@@ -18885,10 +19397,11 @@ async function tryAutoPlaybackFallback(song, data, idx, token, opts) {
   var restriction = (data && data.restriction) || {};
   var category = (data && data.reason) || restriction.category || '';
   var fromLabel = playbackProviderLabel(song);
-  var targetLabel = alternatePlaybackProvider(song) === 'qq' ? 'QQ 音乐' : '网易云';
+  var fallbackProviders = fallbackPlaybackProviders(song);
+  var targetLabel = fallbackProviderLabels(fallbackProviders);
   showSourceFallbackNotice('正在自动换源', fromLabel + ' 当前不可播，正在查找 ' + targetLabel + ' 的同名同歌手版本。');
   try {
-    var alternate = await searchAlternatePlatformSong(song);
+    var alternate = await searchAlternatePlatformSong(song, fallbackProviders);
     if (token !== trackSwitchToken) return true;
     if (!alternate) {
       if (category === 'login_required') return false;
@@ -18896,10 +19409,11 @@ async function tryAutoPlaybackFallback(song, data, idx, token, opts) {
       return true;
     }
     alternate.autoFallbackFrom = songProviderKey(song);
+    alternate.radioContext = song.radioContext || activeRadioContext || null;
     playQueue[idx] = hydrateCustomCover(alternate);
     safeRenderQueuePanel('source-fallback', { scrollCurrent: miniQueueOpen });
     safeShelfRebuild('source-fallback');
-    showSourceFallbackNotice('已自动切换音源', (song.name || '当前歌曲') + ' 已从 ' + fromLabel + ' 切到 ' + targetLabel + '。');
+    showSourceFallbackNotice('已自动切换音源', (song.name || '当前歌曲') + ' 已从 ' + fromLabel + ' 切到 ' + playbackProviderLabel(alternate) + '。');
     await playQueueAt(idx, { fallbackDepth: 1 });
     return true;
   } catch (e) {
@@ -19014,6 +19528,7 @@ async function playQueueAt(idx, opts) {
   playQueue[idx] = song;
   var playbackContext = opts.context || (song && song.radioContext) || null;
   activeRadioContext = playbackContext || null;
+  if (!activeRadioContext || activeRadioContext.type !== 'qishui-mode-radio') qishuiListenState.active = false;
   safeRenderQueuePanel('play-queue-at-switch', { scrollCurrent: miniQueueOpen });
   safePlaybackStep('shelf-preview-suppress', suppressShelfPreviewForPlaybackSwitch);
   pauseCurrentAudioForTrackSwitch();
@@ -19311,13 +19826,21 @@ function setPlayIcon(p) {
     ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
     : '<path d="M8 5v14l11-7z"/>';
 }
+function playNextQueueIndex() {
+  if (!playQueue.length) return;
+  if (playMode === 'shuffle') currentIdx = Math.floor(Math.random() * playQueue.length);
+  else currentIdx = (currentIdx + 1) % playQueue.length;
+  Promise.resolve(playQueueAt(currentIdx)).finally(forcePlaybackControlsInteractive);
+}
 function nextTrack() {
   if (!playQueue.length) return;
   playToggleBusy = false;
   forcePlaybackControlsInteractive();
-  if (playMode === 'shuffle') currentIdx = Math.floor(Math.random() * playQueue.length);
-  else currentIdx = (currentIdx + 1) % playQueue.length;
-  Promise.resolve(playQueueAt(currentIdx)).finally(forcePlaybackControlsInteractive);
+  if (isQishuiModeRadioActive() && playMode !== 'shuffle' && currentIdx >= playQueue.length - 2) {
+    ensureQishuiModeQueueAhead().finally(playNextQueueIndex);
+    return;
+  }
+  playNextQueueIndex();
 }
 function prevTrack() {
   if (!playQueue.length) return;
@@ -19327,16 +19850,20 @@ function prevTrack() {
   Promise.resolve(playQueueAt(currentIdx)).finally(forcePlaybackControlsInteractive);
 }
 function shuffleQueue() {
+  var currentSong = playQueue[currentIdx] || null;
   for (var i = playQueue.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1));
     var tmp = playQueue[i]; playQueue[i] = playQueue[j]; playQueue[j] = tmp;
   }
-  currentIdx = 0; safeRenderQueuePanel('shuffle-queue');
+  var keptIndex = currentSong ? playQueue.indexOf(currentSong) : -1;
+  currentIdx = keptIndex >= 0 ? keptIndex : 0;
+  safeRenderQueuePanel('shuffle-queue');
   showToast('队列已随机');
   safeShelfRebuild('shuffle-queue');
 }
 function clearQueue() {
   playQueue = []; currentIdx = -1;
+  qishuiListenState.active = false;
   safeRenderQueuePanel('clear-queue');
   safeShelfRebuild('clear-queue');
   updateCustomCoverButton();
@@ -19346,7 +19873,10 @@ function clearQueue() {
 function removeFromQueue(idx) {
   if (idx < 0 || idx >= playQueue.length) return;
   playQueue.splice(idx, 1);
+  if (idx < currentIdx) currentIdx -= 1;
+  else if (idx === currentIdx) currentIdx = Math.min(currentIdx, playQueue.length - 1);
   if (currentIdx >= playQueue.length) currentIdx = playQueue.length - 1;
+  if (!playQueue.length) qishuiListenState.active = false;
   safeRenderQueuePanel('remove-queue-item');
   safeShelfRebuild('remove-queue-item');
   updateCustomCoverButton();
@@ -20031,6 +20561,8 @@ function renderQueuePanel(opts) {
 async function refreshUserPlaylists(force) {
   if (!loginStatus.loggedIn && !qqLoginStatus.loggedIn && !qishuiLoginStatus.loggedIn) {
     resetPlaylistPanelRenderLimit();
+    playlistProviderFilter = 'all';
+    renderPlaylistProviderFilter();
     document.getElementById('pl-list').innerHTML = '<div style="text-align:center;padding:24px 0;color:rgba(255,255,255,.32);font-size:11.5px">登录后显示个人歌单</div>';
     var podcastListLoggedOut = document.getElementById('podcast-list');
     if (podcastListLoggedOut) podcastListLoggedOut.innerHTML = '<div style="text-align:center;padding:14px 0;color:rgba(255,255,255,.28);font-size:11.5px">登录后显示我的播客</div>';
@@ -20232,9 +20764,72 @@ function maybeGrowPlaylistPanelDetailRenderLimit() {
 function resetPlaylistPanelRenderLimit() {
   playlistPanelRenderLimit = PLAYLIST_PANEL_BATCH_SIZE;
 }
+function filteredUserPlaylists() {
+  if (playlistProviderFilter === 'netease' || playlistProviderFilter === 'qq' || playlistProviderFilter === 'qishui') {
+    return userPlaylists.filter(function(pl){ return normalizeProviderKey(pl && pl.provider) === playlistProviderFilter; });
+  }
+  return userPlaylists.slice();
+}
+function playlistProviderCount(provider) {
+  if (provider === 'all') return userPlaylists.length;
+  return userPlaylists.filter(function(pl){ return normalizeProviderKey(pl && pl.provider) === provider; }).length;
+}
+function playlistSourceChipText() {
+  if (!hasAnyPlatformLogin()) return '登录后同步网易云 / QQ / 汽水';
+  var count = playlistProviderCount(playlistProviderFilter);
+  if (playlistProviderFilter === 'all') return '全部来源 · ' + count + ' 个歌单';
+  return platformMeta(playlistProviderFilter).label + ' · ' + count + ' 个歌单';
+}
+function renderPlaylistProviderFilter() {
+  var wrap = document.getElementById('playlist-source-filter');
+  var chip = document.getElementById('playlist-source-chip');
+  if (chip) chip.textContent = playlistSourceChipText();
+  if (!wrap) return;
+  var filters = [
+    { key: 'all', label: '全部' },
+    { key: 'netease', label: 'NE' },
+    { key: 'qq', label: 'QQ' },
+    { key: 'qishui', label: 'QS' }
+  ];
+  wrap.innerHTML = filters.map(function(item){
+    var count = playlistProviderCount(item.key);
+    var disabled = item.key !== 'all' && count === 0;
+    return '<button class="fx-mini-btn ghost' + (playlistProviderFilter === item.key ? ' active' : '') + '" type="button" ' + (disabled ? 'disabled ' : '') + 'onclick="setPlaylistProviderFilter(&quot;' + item.key + '&quot;)">' + item.label + (count ? ' ' + count : '') + '</button>';
+  }).join('');
+}
+function applyPlaylistProviderFilter(provider, opts) {
+  opts = opts || {};
+  provider = provider === 'qq' || provider === 'qishui' || provider === 'netease' ? provider : 'all';
+  var changed = playlistProviderFilter !== provider;
+  if (changed) {
+    playlistProviderFilter = provider;
+    resetPlaylistPanelRenderLimit();
+  }
+  if (opts.switchVisiblePanel) {
+    var panel = document.getElementById('playlist-panel');
+    var panelOpen = panel && (panel.classList.contains('show') || panel.classList.contains('peek') || panel.classList.contains('pinned'));
+    if (panelOpen && queueViewTab !== 'playlists') {
+      switchPlaylistTab('playlists');
+      return;
+    }
+  }
+  if (queueViewTab === 'playlists') renderUserPlaylistsList({ animate: opts.animate !== false });
+  else renderPlaylistProviderFilter();
+}
+function setPlaylistProviderFilter(provider) {
+  applyPlaylistProviderFilter(provider, { animate: true });
+}
+function syncPlaylistFilterToAccountProvider(provider) {
+  if (provider !== 'all') {
+    provider = normalizeProviderKey(provider);
+    if (!hasPlatformLogin(provider)) return;
+  }
+  applyPlaylistProviderFilter(provider, { animate: true, switchVisiblePanel: true });
+}
 function growPlaylistPanelRenderLimit() {
-  if (!userPlaylists.length) return;
-  var next = Math.min(userPlaylists.length, (playlistPanelRenderLimit || PLAYLIST_PANEL_BATCH_SIZE) + PLAYLIST_PANEL_BATCH_SIZE);
+  var total = filteredUserPlaylists().length;
+  if (!total) return;
+  var next = Math.min(total, (playlistPanelRenderLimit || PLAYLIST_PANEL_BATCH_SIZE) + PLAYLIST_PANEL_BATCH_SIZE);
   if (next <= playlistPanelRenderLimit) return;
   playlistPanelRenderLimit = next;
   renderUserPlaylistsList({ animate: true });
@@ -20245,7 +20840,7 @@ function bindPlaylistPanelLazyRender() {
   playlistPanelLazyBound = true;
   panel.addEventListener('scroll', function(){
     maybeGrowPlaylistPanelDetailRenderLimit();
-    if (queueViewTab !== 'playlists' || playlistPanelRenderLimit >= userPlaylists.length) return;
+    if (queueViewTab !== 'playlists' || playlistPanelRenderLimit >= filteredUserPlaylists().length) return;
     if (panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 180) growPlaylistPanelRenderLimit();
   }, { passive: true });
 }
@@ -20253,6 +20848,7 @@ function renderUserPlaylistsList(opts) {
   opts = opts || {};
   var $pl = document.getElementById('pl-list');
   var seq = ++playlistRenderSeq;
+  renderPlaylistProviderFilter();
   if (!userPlaylists.length) {
     $pl.innerHTML = '<div style="text-align:center;padding:24px 0;color:rgba(255,255,255,.32);font-size:11.5px">未找到歌单</div>';
     return;
@@ -20269,13 +20865,20 @@ function renderUserPlaylistsList(opts) {
       '<div style="flex:1;min-width:0"><div class="pl-name">' + escHtml(pl.name) + '<span class="tag-source ' + provider + '" style="margin-left:6px;vertical-align:1px">' + providerLabel + '</span></div><div class="pl-sub">' + pl.trackCount + ' 首 · ' + escHtml(pl.creator || '') + '</div></div>' +
     '</div>' + playlistPanelDetailHtml(pl, provider);
   }
-  var groups = [
-    { key:'netease', label:'网易云歌单', items:userPlaylists.filter(function(pl){ return normalizeProviderKey(pl.provider) === 'netease'; }) },
-    { key:'qq', label:'QQ 音乐歌单', items:userPlaylists.filter(function(pl){ return normalizeProviderKey(pl.provider) === 'qq'; }) },
-    { key:'qishui', label:'汽水音乐歌单', items:userPlaylists.filter(function(pl){ return normalizeProviderKey(pl.provider) === 'qishui'; }) }
-  ];
+  var visiblePlaylists = filteredUserPlaylists();
+  if (!visiblePlaylists.length) {
+    $pl.innerHTML = '<div style="text-align:center;padding:24px 0;color:rgba(255,255,255,.32);font-size:11.5px">当前来源没有歌单</div>';
+    return;
+  }
+  var groups = playlistProviderFilter === 'all'
+    ? [
+      { key:'netease', label:'网易云歌单', items:visiblePlaylists.filter(function(pl){ return normalizeProviderKey(pl.provider) === 'netease'; }) },
+      { key:'qq', label:'QQ 音乐歌单', items:visiblePlaylists.filter(function(pl){ return normalizeProviderKey(pl.provider) === 'qq'; }) },
+      { key:'qishui', label:'汽水音乐歌单', items:visiblePlaylists.filter(function(pl){ return normalizeProviderKey(pl.provider) === 'qishui'; }) }
+    ]
+    : [{ key: playlistProviderFilter, label: platformMeta(playlistProviderFilter).label + '歌单', items: visiblePlaylists }];
   if (opts.reset) resetPlaylistPanelRenderLimit();
-  playlistPanelRenderLimit = Math.max(PLAYLIST_PANEL_BATCH_SIZE, Math.min(userPlaylists.length, playlistPanelRenderLimit || PLAYLIST_PANEL_BATCH_SIZE));
+  playlistPanelRenderLimit = Math.max(PLAYLIST_PANEL_BATCH_SIZE, Math.min(visiblePlaylists.length, playlistPanelRenderLimit || PLAYLIST_PANEL_BATCH_SIZE));
   var renderedCount = 0;
   function visibleGroupItems(items) {
     var room = playlistPanelRenderLimit - renderedCount;
@@ -20287,10 +20890,10 @@ function renderUserPlaylistsList(opts) {
   $pl.innerHTML = groups.map(function(group){
     var items = visibleGroupItems(group.items);
     if (!items.length) return '';
-    return '<div class="pl-section-label">' + group.label + '</div>' + items.map(playlistCardHtml).join('');
+    return '<div class="pl-section-label" data-provider="' + escHtml(group.key) + '">' + group.label + '</div>' + items.map(playlistCardHtml).join('');
   }).join('') || '<div style="text-align:center;padding:24px 0;color:rgba(255,255,255,.32);font-size:11.5px">未找到歌单</div>';
-  if (userPlaylists.length > renderedCount) {
-    $pl.insertAdjacentHTML('beforeend', '<button type="button" class="fx-mini-btn ghost pl-load-more" data-pl-load-more="1">加载更多 ' + renderedCount + '/' + userPlaylists.length + '</button>');
+  if (visiblePlaylists.length > renderedCount) {
+    $pl.insertAdjacentHTML('beforeend', '<button type="button" class="fx-mini-btn ghost pl-load-more" data-pl-load-more="1">加载更多 ' + renderedCount + '/' + visiblePlaylists.length + '</button>');
   }
   if (opts.animate && seq === playlistRenderSeq) animateVisiblePanelList($pl, '.pl-card', document.getElementById('playlist-panel'));
 }
@@ -23855,6 +24458,7 @@ function bindModalBackdropClose() {
     ['track-detail-modal', closeTrackDetailModal],
     ['login-modal', closeLoginModal],
     ['user-modal', closeUserModal],
+    ['qishui-mode-modal', closeQishuiModeModal],
     ['custom-lyric-modal', closeCustomLyricModal],
     ['update-modal', closeUpdatePanel]
   ].forEach(function(pair){
@@ -23938,21 +24542,62 @@ function providerAvatarSrc(provider, status) {
   status = status || platformStatus(provider) || {};
   if (status.avatar) return avatarSrc(status.avatar);
   var meta = platformMeta(provider);
-  var fill = provider === 'qishui' ? '#80edff' : (provider === 'qq' ? '#bfd66b' : '#d95b67');
-  var bg = provider === 'qishui' ? '#07151a' : (provider === 'qq' ? '#11150b' : '#180b0f');
+  var fill = provider === 'qishui' ? '#80edff' : (provider === 'qq' ? '#00f5d4' : '#d95b67');
+  var bg = provider === 'qishui' ? '#07151a' : (provider === 'qq' ? '#061516' : '#180b0f');
   var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="' + bg + '"/><circle cx="48" cy="48" r="34" fill="' + fill + '" opacity=".16"/><text x="48" y="56" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="' + fill + '">' + meta.short + '</text></svg>';
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+}
+function providerDisplayName(provider, status) {
+  status = status || platformStatus(provider) || {};
+  var meta = platformMeta(provider);
+  return (provider === 'qq' && status.preview) ? '待接入' : (status.nickname || meta.label);
+}
+function providerAccountDetail(provider, status) {
+  status = status || platformStatus(provider) || {};
+  var uid = (status && status.userId) || '-';
+  if (!status.loggedIn) return '未登录';
+  if (provider === 'netease') {
+    var neVipLevel = providerVipLevel('netease', status);
+    var vipLabel = neVipLevel === 'svip' ? '网易云 SVIP' : (neVipLevel === 'vip' ? '网易云 VIP' : '普通用户');
+    return 'UID: ' + uid + ' · ' + vipLabel;
+  }
+  if (provider === 'qq') {
+    return 'UID: ' + uid + ' · ' + (hasProviderVip('qq', status) ? 'QQ VIP 会员' : 'QQ 音乐会话');
+  }
+  return 'UID: ' + uid + ' · ' + (hasProviderVip('qishui', status) ? '汽水 VIP 会员' : '汽水音乐会话');
+}
+function providerAccountToneColor(provider, status) {
+  if (!hasProviderVip(provider, status)) {
+    return provider === 'qishui' ? 'rgba(128,237,255,0.62)' : (provider === 'qq' ? 'rgba(0,245,212,0.58)' : 'rgba(255,255,255,0.5)');
+  }
+  return provider === 'qishui' ? 'rgba(128,237,255,0.88)' : (provider === 'qq' ? 'rgba(0,245,212,0.82)' : 'rgba(244,210,138,0.86)');
 }
 function renderTopAccountPill(provider) {
   var st = platformStatus(provider);
   if (!st || !st.loggedIn) return '';
   var meta = platformMeta(provider);
-  var displayName = (provider === 'qq' && st.preview) ? '待接入' : (st.nickname || meta.label);
+  var displayName = providerDisplayName(provider, st);
   var vipTag = providerVipBadge(provider, st);
   return '<span class="top-account-pill">' +
     '<img src="' + providerAvatarSrc(provider, st) + '" alt="">' +
     '<span class="top-account-name">' + escHtml(displayName) + '</span>' +
     vipTag +
+  '</span>';
+}
+function renderTopAccountCluster() {
+  var logged = loggedProviderKeys();
+  if (!logged.length) return '';
+  var active = hasPlatformLogin(activeAccountProvider) ? activeAccountProvider : logged[0];
+  var activeStatus = platformStatus(active);
+  var activeName = providerDisplayName(active, activeStatus);
+  var avatars = logged.map(function(provider){
+    return '<img src="' + providerAvatarSrc(provider, platformStatus(provider)) + '" alt="' + escHtml(platformMeta(provider).label) + '">';
+  }).join('');
+  var sourceText = logged.map(function(provider){ return platformMeta(provider).short; }).join(' / ');
+  return '<span class="top-account-cluster">' +
+    '<span class="top-account-avatar-stack">' + avatars + '</span>' +
+    '<span class="top-account-summary"><span class="top-account-summary-main">' + escHtml(activeName) + '</span><span class="top-account-summary-sub">' + escHtml(sourceText) + '</span></span>' +
+    '<span class="top-account-count">' + logged.length + '</span>' +
   '</span>';
 }
 async function refreshLoginStatus(force) {
@@ -24099,18 +24744,18 @@ function renderUserBtn() {
   if (!btn) return;
   btn.classList.remove('multi-account');
   if (dualAccountMode && hasAnyPlatformLogin()) {
-    activeAccountProvider = firstLoggedProvider();
+    if (!hasPlatformLogin(activeAccountProvider)) activeAccountProvider = firstLoggedProvider();
     btn.classList.add('logged-in', 'multi-account');
     btn.classList.remove('logged-out');
     btn.title = '账号信息 · 多平台登录状态';
-    btn.innerHTML = loggedProviderKeys().map(function(provider){ return renderTopAccountPill(provider); }).join('');
+    btn.innerHTML = renderTopAccountCluster();
   } else if (hasAnyPlatformLogin()) {
-    activeAccountProvider = firstLoggedProvider();
+    if (!hasPlatformLogin(activeAccountProvider)) activeAccountProvider = firstLoggedProvider();
     var st = platformStatus(activeAccountProvider);
     var meta = platformMeta(activeAccountProvider);
     btn.classList.add('logged-in');
     btn.classList.remove('logged-out');
-	    btn.title = dualAccountMode ? '账号信息 · 已启用多平台展示' : ((st.nickname || meta.label) + ' · 账号信息');
+    btn.title = dualAccountMode ? '账号信息 · 已启用多平台展示' : ((st.nickname || meta.label) + ' · 账号信息');
     btn.innerHTML = '<img id="user-avatar" src="' + providerAvatarSrc(activeAccountProvider, st) + '">' +
                     '<span>' + escHtml(st.nickname || meta.label) + '</span>' +
                     providerVipBadge(activeAccountProvider, st, 'user-vip-tag');
@@ -24566,7 +25211,7 @@ async function checkQr() {
   } catch (e) { console.warn(e); }
 }
 function updateUserModalUi() {
-  activeAccountProvider = firstLoggedProvider();
+  if (!hasPlatformLogin(activeAccountProvider)) activeAccountProvider = firstLoggedProvider();
   var st = platformStatus(activeAccountProvider);
   var meta = platformMeta(activeAccountProvider);
   var chip = document.getElementById('account-provider-chip');
@@ -24579,38 +25224,70 @@ function updateUserModalUi() {
   var addQQ = document.getElementById('account-add-qq');
   var addQishui = document.getElementById('account-add-qishui');
   if (chip) {
-    chip.className = 'account-provider-chip ' + activeAccountProvider;
-    chip.innerHTML = '<span class="account-source-dot ' + meta.dot + '"></span><span>' + meta.label + '</span>';
+    chip.className = 'account-provider-chip ' + (dualAccountMode ? 'both' : activeAccountProvider);
+    chip.innerHTML = dualAccountMode
+      ? '<span class="account-source-dot netease"></span><span class="account-source-dot qq"></span><span class="account-source-dot qishui"></span><span>多平台 · ' + loggedProviderCount() + ' 个账号在线</span>'
+      : '<span class="account-source-dot ' + meta.dot + '"></span><span>' + meta.label + '</span>';
   }
   if (avatar) avatar.src = providerAvatarSrc(activeAccountProvider, st);
-  if (name) name.textContent = (st && st.nickname) || meta.label;
+  if (name) name.textContent = providerDisplayName(activeAccountProvider, st);
   if (vipEl) {
-    if (activeAccountProvider === 'netease') {
-      var neVipLevel = providerVipLevel('netease', st);
-      var vipLabel = neVipLevel === 'svip' ? '网易云 SVIP' : (neVipLevel === 'vip' ? '网易云 VIP' : '普通用户');
-      vipEl.textContent = 'UID: ' + ((st && st.userId) || '-') + '  ·  ' + vipLabel;
-      vipEl.style.color = hasProviderVip('netease', st) ? 'rgba(244,210,138,0.86)' : 'rgba(255,255,255,0.5)';
-    } else if (activeAccountProvider === 'qq') {
-      var qqVipLabel = hasProviderVip('qq', st) ? 'QQ VIP 会员' : 'QQ 音乐会话';
-      vipEl.textContent = 'UID: ' + ((st && st.userId) || '-') + '  ·  ' + qqVipLabel;
-      vipEl.style.color = hasProviderVip('qq', st) ? 'rgba(0,245,212,0.82)' : 'rgba(0,245,212,0.58)';
-    } else {
-      var qsVipLabel = hasProviderVip('qishui', st) ? '汽水 VIP 会员' : '汽水音乐会话';
-      vipEl.textContent = 'UID: ' + ((st && st.userId) || '-') + '  ·  ' + qsVipLabel;
-      vipEl.style.color = hasProviderVip('qishui', st) ? 'rgba(128,237,255,0.88)' : 'rgba(128,237,255,0.62)';
-    }
+    vipEl.textContent = providerAccountDetail(activeAccountProvider, st);
+    vipEl.style.color = providerAccountToneColor(activeAccountProvider, st);
+  }
+  renderAccountPlatformList();
+  function applyAccountActionButton(button, provider) {
+    if (!button) return;
+    var providerLoggedIn = hasPlatformLogin(provider);
+    var providerMeta = platformMeta(provider);
+    var compactLabel = provider === 'netease' ? '网易云' : (provider === 'qq' ? 'QQ' : '汽水');
+    button.textContent = providerLoggedIn
+      ? (provider === activeAccountProvider ? '当前' + compactLabel : '切到' + compactLabel)
+      : '补登' + compactLabel;
+    button.classList.toggle('primary', provider === activeAccountProvider);
   }
   ['netease','qq','qishui','both'].forEach(function(key){
     var btn = document.getElementById('user-provider-' + key);
     if (btn) btn.classList.toggle('active', key === 'both' ? dualAccountMode : (!dualAccountMode && activeAccountProvider === key));
   });
-  if (addNetease) addNetease.style.display = hasPlatformLogin('netease') ? 'none' : '';
-  if (addQQ) addQQ.textContent = hasPlatformLogin('qq') ? '查看 QQ 音乐' : '补登 QQ 音乐';
-  if (addQishui) addQishui.textContent = hasPlatformLogin('qishui') ? '查看汽水音乐' : '补登汽水';
+  applyAccountActionButton(addNetease, 'netease');
+  applyAccountActionButton(addQQ, 'qq');
+  applyAccountActionButton(addQishui, 'qishui');
   if (logoutBtn) logoutBtn.textContent = activeAccountProvider === 'qishui' ? '退出汽水音乐' : (activeAccountProvider === 'qq' ? '退出 QQ 音乐' : '退出网易云');
   if (hint) hint.textContent = dualAccountMode
-    ? '右上角已切换为多平台并排展示。'
-    : '可切换右上角展示的平台；多平台会并排放已登录状态。';
+    ? '右上角使用一个多平台账号胶囊展示，当前播放与歌单偏好仍跟随所选平台。'
+    : '选择一个平台作为右上角主账号，也可以启用多平台统一展示。';
+}
+function renderAccountPlatformList() {
+  var list = document.getElementById('account-platform-list');
+  if (!list) return;
+  var providers = ['netease', 'qq', 'qishui'];
+  list.innerHTML = providers.map(function(provider){
+    var status = platformStatus(provider) || {};
+    var meta = platformMeta(provider);
+    var loggedIn = !!status.loggedIn;
+    var active = loggedIn && provider === activeAccountProvider;
+    var state = active ? '当前' : (loggedIn ? '在线' : '未登录');
+    var rowClass = 'account-platform-row' + (active ? ' active' : '') + (!loggedIn ? ' offline' : '');
+    var sub = loggedIn ? providerAccountDetail(provider, status) : '补登后同步歌单与播放能力';
+    return '<button class="' + rowClass + '" type="button" onclick="handleAccountProviderAction(&quot;' + provider + '&quot;)">' +
+      '<img class="account-platform-avatar" src="' + providerAvatarSrc(provider, status) + '" alt="">' +
+      '<span style="min-width:0"><span class="account-platform-title"><span class="account-source-dot ' + meta.dot + '"></span><span>' + escHtml(loggedIn ? providerDisplayName(provider, status) : meta.label) + '</span></span>' +
+      '<span class="account-platform-sub">' + escHtml(sub) + '</span></span>' +
+      '<span class="account-platform-state">' + state + '</span>' +
+    '</button>';
+  }).join('');
+}
+function handleAccountProviderAction(provider) {
+  provider = normalizeProviderKey(provider);
+  if (hasPlatformLogin(provider)) {
+    activeAccountProvider = provider;
+    renderUserBtn();
+    updateUserModalUi();
+    syncPlaylistFilterToAccountProvider(provider);
+    return;
+  }
+  openProviderLogin(provider);
 }
 function showUserModal() {
   if (!hasAnyPlatformLogin()) return showLoginModal();
@@ -24628,6 +25305,7 @@ function setActiveAccountProvider(provider) {
   dualAccountMode = false;
   renderUserBtn();
   updateUserModalUi();
+  syncPlaylistFilterToAccountProvider(provider);
 }
 function enableDualAccountView() {
   var logged = loggedProviderKeys();
@@ -24635,6 +25313,7 @@ function enableDualAccountView() {
     dualAccountMode = true;
     renderUserBtn();
     updateUserModalUi();
+    syncPlaylistFilterToAccountProvider('all');
     showToast('已启用多平台账号展示');
     return;
   }
