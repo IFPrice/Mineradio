@@ -1938,7 +1938,7 @@ html.control-glass-svg-ok #visual-guide-btn:hover{
   </div>
   <div class="desktop-utility-controls">
     <button id="visual-guide-btn" class="icon-btn" type="button" onclick="startVisualGuide({ manual: true })" title="查看使用引导" aria-label="查看使用引导">?</button>
-    <span id="update-version-badge" class="update-version-badge" aria-label="当前版本">v1.1.4</span>
+    <span id="update-version-badge" class="update-version-badge" aria-label="当前版本">v1.1.5</span>
     <button id="update-entry" class="update-entry" type="button" onclick="openUpdatePanel()" title="发现新版本" aria-label="发现新版本">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle class="update-ring" cx="12" cy="12" r="8.8"></circle>
@@ -24273,7 +24273,8 @@ function applyDesktopAutoUpdateState(state) {
   updatePreviewState.autoUpdateAvailable = !!state.updateAvailable;
   updatePreviewState.autoUpdateError = state.errorReason || '';
   if (state.currentVersion) updatePreviewState.currentVersion = state.currentVersion;
-  if (state.latestVersion) updatePreviewState.version = state.latestVersion;
+  if (state.latestVersion && updatePreviewState.autoUpdateAvailable) updatePreviewState.version = state.latestVersion;
+  else updatePreviewState.version = updatePreviewState.currentVersion;
   var cleanReleaseName = cleanUpdateCopyLine(state.releaseName);
   if (cleanReleaseName && !updatePreviewState.hero) updatePreviewState.hero = cleanReleaseName;
   if (Array.isArray(state.releaseNotes) && state.releaseNotes.length) updatePreviewState.notes = normalizeUpdateNotes(state.releaseNotes);
@@ -24405,17 +24406,19 @@ async function checkLatestUpdate() {
 function applyLatestUpdateInfo(data) {
   data = data || {};
   var release = data.release || {};
-  updatePreviewState.currentVersion = data.currentVersion || updatePreviewState.currentVersion;
-  updatePreviewState.version = data.latestVersion || release.version || updatePreviewState.currentVersion;
+  var currentVersion = data.currentVersion || updatePreviewState.currentVersion;
+  var latestVersion = data.latestVersion || release.version || currentVersion;
+  updatePreviewState.currentVersion = currentVersion;
   updatePreviewState.configured = !!data.configured;
   updatePreviewState.preview = !!data.preview;
   updatePreviewState.updateAvailable = !!data.updateAvailable;
+  updatePreviewState.version = updatePreviewState.updateAvailable ? latestVersion : currentVersion;
   updatePreviewState.releaseUrl = release.htmlUrl || data.htmlUrl || '';
   updatePreviewState.downloadUrl = release.downloadUrl || data.downloadUrl || '';
   updatePreviewState.patchAvailable = !!(release.patchAvailable && release.patch && release.patch.downloadUrl);
   updatePreviewState.patchUrl = updatePreviewState.patchAvailable ? release.patch.downloadUrl : '';
   updatePreviewState.patchFallbackTried = false;
-  updatePreviewState.hero = cleanUpdateCopyLine(release.summary) || (updatePreviewState.updateAvailable ? defaultUpdateHero() : defaultUpdateHero());
+  updatePreviewState.hero = cleanUpdateCopyLine(release.summary) || defaultUpdateHero();
   updatePreviewState.notes = normalizeUpdateNotes(release.notes);
   renderUpdatePreviewPanel();
   setUpdatePreviewVisible(updatePreviewState.updateAvailable || updatePreviewState.preview);
@@ -24477,6 +24480,8 @@ function syncUpdatePreviewStateClass() {
   var isCurrentVersion = !isDownloading && !isOpening && !isReady && !isError &&
     updatePreviewState.configured && !updatePreviewState.updateAvailable &&
     (updatePreviewState.autoUpdateChecked || updatePreviewState.autoUpdateSupported);
+  var isCheckingUpdate = !isDownloading && !isOpening && !isReady && !isError &&
+    !updatePreviewState.configured && !updatePreviewState.autoUpdateChecked;
   if (entry) {
     entry.classList.toggle('downloading', isDownloading || isOpening);
     entry.classList.toggle('ready', isReady);
@@ -24503,10 +24508,11 @@ function syncUpdatePreviewStateClass() {
     else if (isReady && updatePreviewState.installerPath) label.textContent = updatePreviewState.cached ? '打开已下载安装包' : '打开安装包';
     else if (isReady) label.textContent = updatePreviewState.configured ? '打开安装包' : '预览完成';
     else if (updatePreviewState.autoUpdateSupported && updatePreviewState.autoUpdateAvailable) label.textContent = '下载并更新';
+    else if (isCheckingUpdate) label.textContent = '检查更新中';
     else if (isCurrentVersion) label.textContent = '已是最新版';
     else label.textContent = updatePreviewState.patchAvailable ? '安装快速补丁' : ((canDownloadUpdate || canOpenRelease) ? '下载完整安装包' : '立即更新');
   }
-  if (btn) btn.disabled = isCurrentVersion || isDownloading || isOpening;
+  if (btn) btn.disabled = isCurrentVersion || isCheckingUpdate || isDownloading || isOpening;
   var foot = document.getElementById('update-footnote');
   if (foot) {
     if (isDownloading) foot.textContent = (updatePreviewState.message || (isPatch ? '正在下载快速补丁' : (isAuto ? '正在下载更新' : '正在下载完整安装包'))) + (updateProgressDetailText() ? ' · ' + updateProgressDetailText() : '');
@@ -24515,6 +24521,7 @@ function syncUpdatePreviewStateClass() {
     else if (isReady && isPatch) foot.textContent = updatePreviewState.restartRequired ? '快速补丁已应用，重启 Mineradio 后生效。' : '快速补丁已应用。';
     else if (isReady) foot.textContent = updatePreviewState.cached ? '已复用上次校验通过的安装包，不会重复下载。' : '安装包已准备好，点击按钮后再打开安装。';
     else if (updatePreviewState.autoUpdateSupported && updatePreviewState.autoUpdateAvailable) foot.textContent = '会在应用内下载更新，完成后重启 Mineradio 自动安装。';
+    else if (isCheckingUpdate) foot.textContent = '正在检查是否有可用更新。';
     else if (isCurrentVersion) foot.textContent = '当前版本已是最新，无需操作。';
     else if (updatePreviewState.patchAvailable) foot.textContent = '优先使用轻量补丁，只更新缺失或变更的资源文件；不适用时可下载完整安装包。';
     else foot.textContent = updatePreviewState.updateAvailable ? '没有可用快速补丁时会下载完整安装包。' : '当前版本已是最新。';

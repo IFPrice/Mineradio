@@ -78,6 +78,7 @@ test('update modal prefers automatic app updates before DMG fallback', () => {
 
 test('update UI shows the current version and disables the primary button when current', () => {
   assert.match(indexHtml, /id="update-version-badge"/);
+  assert.match(indexHtml, /id="update-version-badge"[^>]*>v1\.1\.5<\/span>/);
   assert.match(indexHtml, /\.update-version-badge/);
   assert.match(indexHtml, /currentVersion:\s*'1\.1\.5'/);
   assert.match(indexHtml, /version:\s*'1\.1\.5'/);
@@ -86,9 +87,22 @@ test('update UI shows the current version and disables the primary button when c
 
   const syncBody = functionBody(indexHtml, 'syncUpdatePreviewStateClass');
   assert.match(syncBody, /isCurrentVersion/);
+  assert.match(syncBody, /isCheckingUpdate/);
+  assert.match(syncBody, /label\.textContent = '检查更新中'/);
   assert.match(syncBody, /label\.textContent = '已是最新版'/);
-  assert.match(syncBody, /btn\.disabled = isCurrentVersion/);
+  assert.match(syncBody, /btn\.disabled = isCurrentVersion \|\| isCheckingUpdate/);
   assert.match(syncBody, /else if \(isReady && isAuto\) label\.textContent = '立刻重启'/);
+});
+
+test('update modal keeps the current app version when remote latest is older or equal', () => {
+  const latestBody = functionBody(indexHtml, 'applyLatestUpdateInfo');
+  assert.match(latestBody, /var currentVersion = data\.currentVersion \|\| updatePreviewState\.currentVersion/);
+  assert.match(latestBody, /var latestVersion = data\.latestVersion \|\| release\.version \|\| currentVersion/);
+  assert.match(latestBody, /updatePreviewState\.version = updatePreviewState\.updateAvailable \? latestVersion : currentVersion/);
+
+  const autoBody = functionBody(indexHtml, 'applyDesktopAutoUpdateState');
+  assert.match(autoBody, /if \(state\.latestVersion && updatePreviewState\.autoUpdateAvailable\) updatePreviewState\.version = state\.latestVersion/);
+  assert.match(autoBody, /else updatePreviewState\.version = updatePreviewState\.currentVersion/);
 });
 
 test('update modal default copy describes the 1.1.5 updater experience', () => {
