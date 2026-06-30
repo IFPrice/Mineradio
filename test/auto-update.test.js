@@ -79,6 +79,8 @@ test('update modal prefers automatic app updates before DMG fallback', () => {
 test('update UI shows the current version and disables the primary button when current', () => {
   assert.match(indexHtml, /id="update-version-badge"/);
   assert.match(indexHtml, /\.update-version-badge/);
+  assert.match(indexHtml, /currentVersion:\s*'1\.1\.5'/);
+  assert.match(indexHtml, /version:\s*'1\.1\.5'/);
   assert.match(indexHtml, /function renderCurrentVersionBadge\(/);
   assert.match(indexHtml, /renderCurrentVersionBadge\(\)/);
 
@@ -87,6 +89,26 @@ test('update UI shows the current version and disables the primary button when c
   assert.match(syncBody, /label\.textContent = '已是最新版'/);
   assert.match(syncBody, /btn\.disabled = isCurrentVersion/);
   assert.match(syncBody, /else if \(isReady && isAuto\) label\.textContent = '立刻重启'/);
+});
+
+test('update modal default copy describes the 1.1.5 updater experience', () => {
+  assert.match(indexHtml, /更新状态更清晰，版本识别更直观。/);
+  assert.match(indexHtml, /右上角显示当前版本号/);
+  assert.match(indexHtml, /最新版时按钮置灰并显示已是最新版/);
+  assert.match(indexHtml, /下载完成后可立刻重启安装/);
+  assert.match(indexHtml, /重复点击更新会复用同一个下载任务/);
+  assert.doesNotMatch(indexHtml, /安装包文字对比修复/);
+  assert.doesNotMatch(indexHtml, /安装目录可自由选择/);
+  assert.doesNotMatch(indexHtml, /单实例与快捷方式修复/);
+
+  const applyBody = functionBody(indexHtml, 'applyDesktopAutoUpdateState');
+  assert.match(indexHtml, /function defaultUpdateHero\(/);
+  assert.match(indexHtml, /function defaultUpdateNotes\(/);
+  assert.match(indexHtml, /function cleanUpdateCopyLine\(/);
+  assert.match(indexHtml, /function normalizeUpdateNotes\(/);
+  assert.match(applyBody, /cleanReleaseName \|\| defaultUpdateHero\(\)/);
+  assert.match(applyBody, /updatePreviewState\.notes = normalizeUpdateNotes\(state\.releaseNotes\)/);
+  assert.doesNotMatch(applyBody, /state\.releaseNotes\.slice\(0,\s*4\)/);
 });
 
 test('main process coalesces duplicate auto update download and install requests', () => {

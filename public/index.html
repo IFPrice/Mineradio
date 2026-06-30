@@ -2729,7 +2729,7 @@ html.control-glass-svg-ok #visual-guide-btn:hover{
         </div>
       </div>
       <div class="update-hero">
-        <div id="update-hero-main" class="update-hero-main">电影镜头更稳，音源兜底更顺。</div>
+          <div id="update-hero-main" class="update-hero-main">更新状态更清晰，版本识别更直观。</div>
         <div id="update-hero-sub" class="update-hero-sub"></div>
       </div>
       <div id="update-list" class="update-list"></div>
@@ -2936,8 +2936,8 @@ var updatePreviewState = {
   installerPath: '',
   installerOpened: false,
   cached: false,
-  currentVersion: '0.9.11',
-  version: '1.1.0',
+  currentVersion: '1.1.5',
+  version: '1.1.5',
   configured: false,
   preview: true,
   updateAvailable: false,
@@ -2962,11 +2962,12 @@ var updatePreviewState = {
   message: '',
   restartRequired: false,
   patchFallbackTried: false,
-  hero: '当前版本，更新检测已就绪。',
+  hero: '更新状态更清晰，版本识别更直观。',
   notes: [
-    '安装包文字对比修复',
-    '安装目录可自由选择',
-    '单实例与快捷方式修复'
+    '右上角显示当前版本号',
+    '最新版时按钮置灰并显示已是最新版',
+    '下载完成后可立刻重启安装',
+    '重复点击更新会复用同一个下载任务'
   ]
 };
 var desktopAutoUpdateUnsubscribe = null;
@@ -24207,11 +24208,49 @@ function formatUpdateSpeed(bytesPerSecond) {
   bytesPerSecond = Number(bytesPerSecond) || 0;
   return bytesPerSecond > 0 ? (formatUpdateBytes(bytesPerSecond) + '/s') : '';
 }
+function defaultUpdateHero() {
+  return '更新状态更清晰，版本识别更直观。';
+}
+function defaultUpdateNotes() {
+  return [
+    '右上角显示当前版本号',
+    '最新版时按钮置灰并显示已是最新版',
+    '下载完成后可立刻重启安装',
+    '重复点击更新会复用同一个下载任务'
+  ];
+}
+function cleanUpdateCopyLine(text) {
+  var line = String(text || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^\s*#{1,6}\s*/, '')
+    .replace(/^\s*[-*+]\s+/, '')
+    .replace(/^\s*\d+[.)]\s+/, '')
+    .replace(/[*_`~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (/^(what'?s changed|changes|changelog|full changelog|更新日志)$/i.test(line)) return '';
+  if (/^https?:\/\//i.test(line)) return '';
+  return line;
+}
+function normalizeUpdateNotes(notes) {
+  var source = Array.isArray(notes) ? notes : String(notes || '').split(/\r?\n/);
+  var cleaned = source.map(cleanUpdateCopyLine).filter(Boolean).slice(0, 4);
+  return cleaned.length ? cleaned : defaultUpdateNotes();
+}
 function renderCurrentVersionBadge() {
   var badge = document.getElementById('update-version-badge');
   if (!badge) return;
   var version = String(updatePreviewState.currentVersion || '').replace(/^v/i, '');
-  if (!version) version = '1.1.4';
+  if (!version) version = '1.1.5';
   badge.textContent = 'v' + version;
   badge.title = '当前版本 v' + version;
 }
@@ -24235,8 +24274,9 @@ function applyDesktopAutoUpdateState(state) {
   updatePreviewState.autoUpdateError = state.errorReason || '';
   if (state.currentVersion) updatePreviewState.currentVersion = state.currentVersion;
   if (state.latestVersion) updatePreviewState.version = state.latestVersion;
-  if (state.releaseName && !updatePreviewState.hero) updatePreviewState.hero = state.releaseName;
-  if (Array.isArray(state.releaseNotes) && state.releaseNotes.length) updatePreviewState.notes = state.releaseNotes.slice(0, 4);
+  var cleanReleaseName = cleanUpdateCopyLine(state.releaseName);
+  if (cleanReleaseName && !updatePreviewState.hero) updatePreviewState.hero = cleanReleaseName;
+  if (Array.isArray(state.releaseNotes) && state.releaseNotes.length) updatePreviewState.notes = normalizeUpdateNotes(state.releaseNotes);
 
   if (!state.supported) {
     renderUpdatePreviewPanel();
@@ -24252,7 +24292,8 @@ function applyDesktopAutoUpdateState(state) {
     updatePreviewState.mode = 'auto';
     updatePreviewState.configured = true;
     updatePreviewState.updateAvailable = true;
-    updatePreviewState.hero = state.releaseName || '发现新版本，可在应用内自动更新。';
+    updatePreviewState.hero = cleanReleaseName || defaultUpdateHero();
+    updatePreviewState.notes = normalizeUpdateNotes(state.releaseNotes);
     updatePreviewState.message = state.message || '发现新版本';
   } else if (state.status === 'not-available') {
     updatePreviewState.status = 'idle';
@@ -24353,7 +24394,8 @@ async function checkLatestUpdate() {
   } catch (e) {
     updatePreviewState.preview = true;
     updatePreviewState.updateAvailable = false;
-    updatePreviewState.hero = '当前版本，更新检测已就绪。';
+    updatePreviewState.hero = defaultUpdateHero();
+    updatePreviewState.notes = defaultUpdateNotes();
     renderUpdatePreviewPanel();
     setUpdatePreviewVisible(true);
   }
@@ -24373,10 +24415,8 @@ function applyLatestUpdateInfo(data) {
   updatePreviewState.patchAvailable = !!(release.patchAvailable && release.patch && release.patch.downloadUrl);
   updatePreviewState.patchUrl = updatePreviewState.patchAvailable ? release.patch.downloadUrl : '';
   updatePreviewState.patchFallbackTried = false;
-  updatePreviewState.hero = release.summary || (updatePreviewState.updateAvailable ? '发现新版本，建议更新。' : '当前版本，更新检测已就绪。');
-  if (Array.isArray(release.notes) && release.notes.length) {
-    updatePreviewState.notes = release.notes.slice(0, 4);
-  }
+  updatePreviewState.hero = cleanUpdateCopyLine(release.summary) || (updatePreviewState.updateAvailable ? defaultUpdateHero() : defaultUpdateHero());
+  updatePreviewState.notes = normalizeUpdateNotes(release.notes);
   renderUpdatePreviewPanel();
   setUpdatePreviewVisible(updatePreviewState.updateAvailable || updatePreviewState.preview);
 }
