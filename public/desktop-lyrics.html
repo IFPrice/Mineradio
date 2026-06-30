@@ -29,6 +29,9 @@
       --lyric-edge:rgba(4,6,12,.42);
       --lyric-drop:rgba(156,255,223,.38);
       --lyric-drop-paused:rgba(156,255,223,.22);
+      --desktop-skyline-keyword-alpha:1.72;
+      --desktop-skyline-glow-boost:1.55;
+      --desktop-skyline-keyword-color:color-mix(in srgb,var(--lyric-primary) 74%,var(--lyric-secondary));
     }
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;user-select:none}
     body{opacity:0;transition:opacity .22s ease;-webkit-app-region:no-drag}
@@ -121,6 +124,38 @@
     }
     .line.in{animation:lyr-in 820ms cubic-bezier(.16,.84,.32,1.02) forwards}
     body.paused .line{filter:none;opacity:.84}
+    .skyline-layer{
+      position:absolute;
+      z-index:1;
+      inset:0;
+      overflow:visible;
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .22s ease;
+      mix-blend-mode:screen;
+      contain:layout style;
+    }
+    body.desktop-skyline .skyline-layer{opacity:1}
+    body:not(.desktop-skyline) .skyline-layer{display:none}
+    .skyline-piece{
+      position:absolute;
+      left:50%;
+      top:50%;
+      color:var(--lyric-secondary);
+      font-family:var(--lyric-font);
+      font-weight:var(--lyric-weight);
+      line-height:1;
+      letter-spacing:0;
+      white-space:nowrap;
+      text-align:center;
+      text-shadow:0 0 12px var(--lyric-shadow-soft),0 0 calc(34px * var(--desktop-skyline-glow-boost)) var(--lyric-shadow-glow),0 0 18px var(--lyric-shadow-hot),0 1px 2px rgba(0,0,0,.50);
+      transform-origin:center;
+      will-change:transform,opacity,filter;
+      -webkit-text-stroke:.12px rgba(255,255,255,.34);
+    }
+    .skyline-piece.keyword{color:var(--desktop-skyline-keyword-color)}
+    .skyline-piece.ghost{color:var(--lyric-primary);text-shadow:0 0 12px var(--lyric-shadow-soft),0 1px 2px rgba(0,0,0,.42)}
+    .skyline-piece.next{color:var(--lyric-highlight);text-shadow:0 0 14px var(--lyric-shadow-hot),0 1px 2px rgba(0,0,0,.42)}
     .lock-hint{
       position:absolute;
       z-index:4;
@@ -182,11 +217,13 @@
       100%{opacity:1;transform:translate3d(0,0,0) rotateX(0deg) rotateY(0deg) scale(1);filter:blur(0)}
     }
   </style>
+  <script src="skyline-lyrics.js"></script>
 </head>
 <body>
   <canvas id="fx"></canvas>
   <div class="wrap">
     <div id="stage" class="stage">
+      <div id="skylineLayer" class="skyline-layer" aria-hidden="true"></div>
       <div id="lyricViewport" class="lyric-viewport"><div id="lyricScroller" class="lyric-scroll"><div id="line" class="line" data-text="Mineradio">Mineradio</div></div></div>
       <div id="lockHint" class="lock-hint"><span class="lock-icon"></span><span id="lockText">&#20013;&#38190;&#35299;&#38145;</span><button id="closeLyricsBtn" class="lyrics-close" type="button" aria-label="Close desktop lyrics">&#20851;&#38381;&#26700;&#38754;&#27468;&#35789;</button></div>
     </div>
@@ -196,6 +233,7 @@
     var canvas = document.getElementById('fx');
     var ctx = canvas.getContext('2d');
     var stage = document.getElementById('stage');
+    var skylineLayer = document.getElementById('skylineLayer');
     var lyricViewport = document.getElementById('lyricViewport');
     var line = document.getElementById('line');
     var lockHint = document.getElementById('lockHint');
@@ -219,10 +257,24 @@
     var hintTimer = 0;
     var lastPointerEvent = null;
     var scrollState = { needed:false, overflow:0, limit:0, offset:0, dir:-1, holdUntil:0, lastAt:0 };
+    var skylineNodes = [];
+    var skylineGhostNodes = {};
+    var skylineMotionState = { key:'', startedAt:0, items:[] };
+    var desktopSkylineMotionTuning = {
+      keywordAlpha:1.72,
+      maxX:1.02,
+      maxY:.92,
+      distance:.82,
+      curve:.82,
+      driftX:.76,
+      driftY:.74,
+      motionX:.42,
+      motionY:.46
+    };
     var particles = [];
     var live = { solar:0, beat:0, bass:0, scale:1, glow:0, spark:0, lift:0 };
     var state = {
-      enabled:false,text:'Mineradio',progress:0,progressSpan:4.8,progressReceivedAt:0,playing:false,
+      enabled:false,text:'Mineradio',previous:'',next:'',skyline:false,progress:0,progressSpan:4.8,progressReceivedAt:0,playing:false,
       playbackTime:0,playbackDuration:0,playbackRate:1,playbackReceivedAt:0,beatMapKey:'',
       size:1,opacity:.92,clickThrough:true,lyricGlowParticles:false,cinema:true,highlightFollow:false,frameRate:60,
       lyricGlow:true,lyricGlowBeat:true,lyricGlowStrength:.35,highBloom:0,beatGlow:0,beatPulse:0,bass:0,feather:.055,
@@ -691,6 +743,136 @@
       document.body.classList.toggle('unlocked', !locked);
       if (lockText) lockText.textContent = locked ? '\u4e2d\u952e\u89e3\u9501' : '\u4e2d\u952e\u9501\u5b9a';
     }
+    function desktopSkylineApi() {
+      return window.MineradioSkylineLyrics && typeof window.MineradioSkylineLyrics.buildModel === 'function'
+        ? window.MineradioSkylineLyrics
+        : null;
+    }
+    function useDesktopSkyline() {
+      return !!(state.enabled && state.skyline && desktopSkylineApi());
+    }
+    function clearSkylineLayer() {
+      if (!skylineLayer) return;
+      for (var i = 0; i < skylineNodes.length; i++) skylineNodes[i].style.display = 'none';
+      Object.keys(skylineGhostNodes).forEach(function(key){
+        if (skylineGhostNodes[key]) skylineGhostNodes[key].style.display = 'none';
+      });
+      skylineMotionState.key = '';
+      skylineMotionState.startedAt = 0;
+      skylineMotionState.items = [];
+    }
+    function resetSkylineMotion(key, nowMs) {
+      skylineMotionState.key = key || '';
+      skylineMotionState.startedAt = nowMs || performance.now();
+      skylineMotionState.items = [];
+    }
+    function ensureSkylineKeywordNode(index) {
+      if (!skylineLayer) return null;
+      if (!skylineNodes[index]) {
+        var node = document.createElement('span');
+        node.className = 'skyline-piece keyword';
+        skylineLayer.appendChild(node);
+        skylineNodes[index] = node;
+      }
+      return skylineNodes[index];
+    }
+    function ensureSkylineRoleNode(role) {
+      if (!skylineLayer) return null;
+      if (!skylineGhostNodes[role]) {
+        var node = document.createElement('span');
+        node.className = 'skyline-piece ' + role;
+        skylineLayer.appendChild(node);
+        skylineGhostNodes[role] = node;
+      }
+      return skylineGhostNodes[role];
+    }
+    function skylineKeywordMotion(layer, index, nowMs) {
+      layer = layer || {};
+      nowMs = nowMs || performance.now();
+      var itemKey = [index, layer.text || '', layer.side || '', layer.layer || 0].join('|');
+      var item = skylineMotionState.items[index];
+      if (!item || item.key !== itemKey) {
+        item = {
+          key:itemKey,
+          delay: clamp(Number(layer.delay) || index * 0.045, 0, 0.50, index * 0.045),
+          phase: index * 1.73 + rand((index + 1) * 3.11) * 0.30,
+          speed: 0.52 + (index % 5) * 0.075,
+          driftX: clamp(isFinite(Number(layer.driftX)) ? Number(layer.driftX) : (layer.side === 'left' ? -1 : 1), -1.55, 1.55, 0),
+          driftY: clamp(isFinite(Number(layer.driftY)) ? Number(layer.driftY) : 0.18, -1.15, 1.15, 0),
+          distance: (0.12 + clamp(Number(layer.diffusion) || 0.36, 0.12, 0.84, 0.36) * 0.13) * desktopSkylineMotionTuning.distance,
+          curve: (0.018 + (index % 4) * 0.006) * desktopSkylineMotionTuning.curve
+        };
+        skylineMotionState.items[index] = item;
+      }
+      var age = Math.max(0, (nowMs - (skylineMotionState.startedAt || nowMs)) * .001);
+      var localAge = Math.max(0, age - item.delay);
+      var appear = clamp(localAge / 0.42, 0, 1, 0);
+      appear = appear * appear * (3 - 2 * appear);
+      var travel = clamp(localAge / 2.45, 0, 1, 0);
+      travel = 1 - Math.pow(1 - travel, 2.2);
+      var now = nowMs * .001;
+      var lateral = Math.sin(now * item.speed + item.phase) * item.curve * appear;
+      var vertical = Math.cos(now * (item.speed * 0.76) + item.phase * 1.31) * item.curve * 0.72 * appear;
+      return {
+        appear:appear,
+        x:item.driftX * item.distance * desktopSkylineMotionTuning.driftX * travel + lateral,
+        y:-item.driftY * item.distance * 0.72 * desktopSkylineMotionTuning.driftY * travel + vertical,
+        z:Math.sin(now * 0.35 + item.phase) * 0.010 * appear,
+        rotate:Math.sin(now * 0.38 + item.phase) * 1.05 * appear,
+        scale:0.94 + appear * 0.08 + Math.sin(now * 0.50 + item.phase) * 0.010 * appear
+      };
+    }
+    function placeSkylineNode(node, item, role, spreadX, spreadY, alphaScale, motion) {
+      if (!node || !item || !item.text || item.opacity <= 0) {
+        if (node) node.style.display = 'none';
+        return;
+      }
+      var x = clamp(Number(item.x) || 0, -desktopSkylineMotionTuning.maxX, desktopSkylineMotionTuning.maxX, 0) * spreadX;
+      var y = clamp(Number(item.y) || 0, -desktopSkylineMotionTuning.maxY, desktopSkylineMotionTuning.maxY, 0) * spreadY;
+      var driftX = clamp(Number(item.driftX) || 0, -1.5, 1.5, 0) * Math.min(28, spreadX * .045);
+      var driftY = clamp(Number(item.driftY) || 0, -1.5, 1.5, 0) * Math.min(24, spreadY * .080);
+      var motionX = motion && isFinite(motion.x) ? motion.x * spreadX * desktopSkylineMotionTuning.motionX : 0;
+      var motionY = motion && isFinite(motion.y) ? motion.y * spreadY * desktopSkylineMotionTuning.motionY : 0;
+      var sizeScale = clamp(item.fontScale == null ? 1 : Number(item.fontScale), .42, 1.72, 1);
+      var fontSize = Math.round(clamp(renderedFontSize * sizeScale * (role === 'keyword' ? .76 : .56), 14, 86, renderedFontSize * .7));
+      var motionAppear = motion && isFinite(motion.appear) ? motion.appear : 1;
+      var opacity = clamp(Number(item.opacity) || 0, 0, 1, 0) * clamp(state.opacity, .28, 1, .92) * (alphaScale == null ? 1 : alphaScale) * motionAppear * (role === 'keyword' ? desktopSkylineMotionTuning.keywordAlpha : 1);
+      var blur = clamp(Number(item.blur) || 0, 0, 10, 0);
+      var rotate = clamp((Number(item.rotate) || 0) + (motion && isFinite(motion.rotate) ? motion.rotate : 0), -18, 18, 0);
+      var pulse = (role === 'keyword' ? (1 + live.beat * .08 + live.solar * .035) : 1) * (motion && isFinite(motion.scale) ? motion.scale : 1);
+      node.textContent = item.text;
+      node.style.display = 'block';
+      node.style.fontSize = fontSize + 'px';
+      node.style.opacity = opacity.toFixed(3);
+      node.style.filter = 'blur(' + blur.toFixed(2) + 'px)';
+      node.style.transform = 'translate3d(calc(-50% + ' + (x + driftX + motionX).toFixed(2) + 'px),calc(-50% + ' + (y + driftY + motionY).toFixed(2) + 'px),' + (motion && isFinite(motion.z) ? motion.z.toFixed(4) : '0') + 'px) rotate(' + rotate.toFixed(2) + 'deg) scale(' + pulse.toFixed(3) + ')';
+    }
+    function renderSkylineLayer(progress, nowMs) {
+      var api = desktopSkylineApi();
+      var active = !!(state.enabled && state.skyline && api && skylineLayer);
+      document.body.classList.toggle('desktop-skyline', active);
+      if (!active) {
+        clearSkylineLayer();
+        return;
+      }
+      var model = window.MineradioSkylineLyrics.buildModel({
+        text: state.text,
+        previous: state.previous,
+        next: state.next,
+        progress: progress
+      });
+      nowMs = nowMs || performance.now();
+      var modelKey = [state.text || '', state.previous || '', state.next || ''].join('|');
+      if (skylineMotionState.key !== modelKey) resetSkylineMotion(modelKey, nowMs);
+      var spreadX = Math.max(196, Math.min(innerWidth * .36, 450));
+      var spreadY = Math.max(68, Math.min(innerHeight * .46, 152));
+      var keywords = model && model.keywords || [];
+      for (var i = 0; i < Math.max(keywords.length, skylineNodes.length); i++) {
+        placeSkylineNode(ensureSkylineKeywordNode(i), keywords[i], 'keyword', spreadX, spreadY, .96, skylineKeywordMotion(keywords[i], i, nowMs));
+      }
+      placeSkylineNode(ensureSkylineRoleNode('ghost'), model && model.previousGhost, 'ghost', spreadX * .54, spreadY, .72);
+      placeSkylineNode(ensureSkylineRoleNode('next'), model && model.nextPreview, 'next', spreadX * .54, spreadY, .74);
+    }
     function setPointerCapture(active) {
       active = !!active;
       if (active === hoverCapture) return;
@@ -726,6 +908,9 @@
       if (motion.beatPulse != null) state.beatPulse = motion.beatPulse;
       if (motion.bass != null) state.bass = motion.bass;
       var text = String(state.text || 'Mineradio').replace(/\s+/g, ' ').trim() || 'Mineradio';
+      state.previous = String(state.previous || '').replace(/\s+/g, ' ').trim();
+      state.next = String(state.next || '').replace(/\s+/g, ' ').trim();
+      state.skyline = !!state.skyline;
       baseFontSize = Math.round(58 * clamp(state.size, .72, 1.55, 1));
       state.progress = clamp(state.progress, 0, 1, 0);
       state.progressSpan = clamp(state.progressSpan, .75, 18, 4.8);
@@ -763,11 +948,13 @@
       document.body.classList.toggle('show', !!state.enabled);
       document.body.classList.toggle('paused', !state.playing);
       document.body.classList.toggle('highlight', state.highlightFollow === true);
+      document.body.classList.toggle('desktop-skyline', useDesktopSkyline());
       document.body.style.opacity = state.enabled ? String(clamp(state.opacity, .28, 1, .92)) : '0';
       syncLockClasses();
       if (!state.enabled) {
         hideInteractionHint();
         setPointerCapture(false);
+        clearSkylineLayer();
       }
       if (text !== lastText) {
         lastText = text;
@@ -783,6 +970,7 @@
         replayLineAnimation();
       }
       fitLyricText(false);
+      renderSkylineLayer(state.progress, performance.now());
     }
     function currentDisplayProgress() {
       var target = clamp(state.progress, 0, 1, 0);
@@ -1007,6 +1195,7 @@
         var motion = updateMotion(now, offlineMotion);
         applyStageMotion(now);
         updateLyricScroll(nowMs, progress);
+        renderSkylineLayer(progress, nowMs);
       }
       scheduleNextDraw();
     }

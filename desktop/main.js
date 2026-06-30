@@ -3,6 +3,14 @@ const net = require('net');
 const path = require('path');
 const fs = require('fs');
 const { execFile, spawn } = require('child_process');
+const APP_PACKAGE = require('../package.json');
+
+let autoUpdater = null;
+try {
+  ({ autoUpdater } = require('electron-updater'));
+} catch (error) {
+  console.warn('Electron auto updater unavailable:', error.message);
+}
 
 let mainWindow = null;
 let localServer = null;
@@ -22,6 +30,7 @@ let wallpaperState = {};
 let htmlFullscreenActive = false;
 let windowFullscreenActive = false;
 let mainWindowStateTimer = null;
+let appAutoUpdaterConfigured = false;
 const registeredGlobalHotkeys = new Map();
 const registeredSystemMediaHotkeys = new Map();
 
@@ -32,6 +41,9 @@ const MIN_WINDOWED_WIDTH = 960;
 const MIN_WINDOWED_HEIGHT = 540;
 const APP_NAME = 'Mineradio';
 const APP_USER_MODEL_ID = 'com.mineradio.desktop';
+const UPDATE_CONFIG = (APP_PACKAGE.mineradio && APP_PACKAGE.mineradio.update) || {};
+const UPDATE_FEED_OWNER = process.env.MINERADIO_UPDATE_OWNER || UPDATE_CONFIG.owner || 'IFPrice';
+const UPDATE_FEED_REPO = process.env.MINERADIO_UPDATE_REPO || UPDATE_CONFIG.repo || 'Mineradio';
 const APP_ICON_ICO = path.join(__dirname, '..', 'build', 'icon.ico');
 const APP_ICON_PNG = path.join(__dirname, '..', 'build', 'icon.png'); // [macOS port]
 const APP_WINDOW_ICON = process.platform === 'darwin' ? APP_ICON_PNG : APP_ICON_ICO;
@@ -511,6 +523,235 @@ function focusMainWindow() {
 
 function getUpdateDownloadDir() {
   return path.join(app.getPath('userData'), 'updates');
+}
+
+let appAutoUpdateState = {
+  ok: false,
+  supported: false,
+  status: 'idle',
+  currentVersion: APP_PACKAGE.version || '0.0.0',
+  latestVersion: '',
+  updateAvailable: false,
+  progress: 0,
+  received: 0,
+  total: 0,
+  speedBps: 0,
+  releaseName: '',
+  releaseNotes: [],
+  errorReason: '',
+  message: '',
+  owner: UPDATE_FEED_OWNER,
+  repo: UPDATE_FEED_REPO,
+};
+
+function normalizeAutoUpdateNotes(notes) {
+  if (Array.isArray(notes)) {
+    return notes
+      .map((item) => {
+        if (typeof item === 'string') return item;
+        return String((item && (item.note || item.version || item.title)) || '').trim();
+      })
+      .filter(Boolean)
+      .slice(0, 4);
+  }
+  return String(notes || '')
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-*]\s*/, '').trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
+function summarizeAutoUpdateInfo(info = {}) {
+  return {
+    latestVersion: String(info.version || appAutoUpdateState.latestVersion || '').replace(/^v/i, ''),
+    releaseName: String(info.releaseName || info.name || appAutoUpdateState.releaseName || ''),
+    releaseNotes: normalizeAutoUpdateNotes(info.releaseNotes || appAutoUpdateState.releaseNotes),
+  };
+}
+
+function appAutoUpdaterUnsupportedReason() {
+  if (!autoUpdater) return 'AUTO_UPDATER_UNAVAILABLE';
+  if (!app.isPackaged) return 'DEV_MODE';
+  if (process.platform !== 'darwin') return 'AUTO_UPDATE_MAC_ONLY';
+  return '';
+}
+
+function sendAppAutoUpdateState(patch = {}) {
+  appAutoUpdateState = {
+    ...appAutoUpdateState,
+    currentVersion: app.getVersion ? app.getVersion() : appAutoUpdateState.currentVersion,
+    owner: UPDATE_FEED_OWNER,
+    repo: UPDATE_FEED_REPO,
+    ...patch,
+  };
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('mineradio-auto-update-state', appAutoUpdateState);
+  }
+  return appAutoUpdateState;
+}
+
+function configureAppAutoUpdater() {
+  if (appAutoUpdaterConfigured || !autoUpdater) return;
+  appAutoUpdaterConfigured = true;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: UPDATE_FEED_OWNER,
+    repo: UPDATE_FEED_REPO,
+  });
+
+  autoUpdater.on('checking-for-update', () => {
+    sendAppAutoUpdateState({
+      ok: true,
+      supported: true,
+      status: 'checking',
+      progress: 0,
+      errorReason: '',
+      message: '正在检查更新',
+    });
+  });
+  autoUpdater.on('update-available', (info) => {
+    sendAppAutoUpdateState({
+      ok: true,
+      supported: true,
+      status: 'available',
+      updateAvailable: true,
+      progress: 0,
+      errorReason: '',
+      message: '发现新版本',
+      ...summarizeAutoUpdateInfo(info),
+    });
+  });
+  autoUpdater.on('update-not-available', (info) => {
+    sendAppAutoUpdateState({
+      ok: true,
+      supported: true,
+      status: 'not-available',
+      updateAvailable: false,
+      progress: 0,
+      errorReason: '',
+      message: '当前已是最新版本',
+      ...summarizeAutoUpdateInfo(info),
+    });
+  });
+  autoUpdater.on('download-progress', (progress) => {
+    sendAppAutoUpdateState({
+      ok: true,
+      supported: true,
+      status: 'downloading',
+      updateAvailable: true,
+      progress: Number(progress && progress.percent || 0),
+      received: Number(progress && progress.transferred || 0),
+      total: Number(progress && progress.total || 0),
+      speedBps: Number(progress && progress.bytesPerSecond || 0),
+      errorReason: '',
+      message: '正在下载更新',
+    });
+  });
+  autoUpdater.on('update-downloaded', (info) => {
+    sendAppAutoUpdateState({
+      ok: true,
+      supported: true,
+      status: 'downloaded',
+      updateAvailable: true,
+      progress: 100,
+      received: appAutoUpdateState.total || appAutoUpdateState.received,
+      errorReason: '',
+      message: '更新已下载',
+      ...summarizeAutoUpdateInfo(info),
+    });
+  });
+  autoUpdater.on('error', (error) => {
+    sendAppAutoUpdateState({
+      ok: false,
+      supported: true,
+      status: 'error',
+      errorReason: (error && error.message) || 'AUTO_UPDATE_FAILED',
+      message: '自动更新失败',
+    });
+  });
+}
+
+async function checkAppAutoUpdate() {
+  const unsupportedReason = appAutoUpdaterUnsupportedReason();
+  if (unsupportedReason) {
+    return sendAppAutoUpdateState({
+      ok: false,
+      supported: false,
+      status: 'unsupported',
+      errorReason: unsupportedReason,
+      message: unsupportedReason === 'DEV_MODE' ? '开发模式使用安装包下载兜底' : '自动更新不可用',
+    });
+  }
+  configureAppAutoUpdater();
+  const result = await autoUpdater.checkForUpdates();
+  if (result && result.updateInfo) {
+    sendAppAutoUpdateState({
+      ok: true,
+      supported: true,
+      ...summarizeAutoUpdateInfo(result.updateInfo),
+    });
+  }
+  return appAutoUpdateState;
+}
+
+async function downloadAppAutoUpdate() {
+  const unsupportedReason = appAutoUpdaterUnsupportedReason();
+  if (unsupportedReason) {
+    return sendAppAutoUpdateState({
+      ok: false,
+      supported: false,
+      status: 'unsupported',
+      errorReason: unsupportedReason,
+      message: '自动更新不可用',
+    });
+  }
+  configureAppAutoUpdater();
+  if (appAutoUpdateState.status === 'downloaded') return appAutoUpdateState;
+  if (!appAutoUpdateState.updateAvailable) await checkAppAutoUpdate();
+  if (!appAutoUpdateState.updateAvailable) {
+    return sendAppAutoUpdateState({
+      ok: false,
+      supported: true,
+      status: 'not-available',
+      errorReason: 'NO_UPDATE_AVAILABLE',
+      message: '当前已是最新版本',
+    });
+  }
+  sendAppAutoUpdateState({
+    ok: true,
+    supported: true,
+    status: 'downloading',
+    progress: 0,
+    received: 0,
+    total: 0,
+    speedBps: 0,
+    errorReason: '',
+    message: '正在下载更新',
+  });
+  await autoUpdater.downloadUpdate();
+  return appAutoUpdateState;
+}
+
+async function installAppAutoUpdate() {
+  const unsupportedReason = appAutoUpdaterUnsupportedReason();
+  if (unsupportedReason) {
+    return { ok: false, supported: false, errorReason: unsupportedReason };
+  }
+  configureAppAutoUpdater();
+  if (appAutoUpdateState.status !== 'downloaded') {
+    return { ok: false, supported: true, errorReason: 'UPDATE_NOT_DOWNLOADED' };
+  }
+  sendAppAutoUpdateState({
+    ok: true,
+    supported: true,
+    status: 'installing',
+    message: '正在重启安装更新',
+  });
+  autoUpdater.quitAndInstall(false, true);
+  return { ok: true, supported: true };
 }
 
 function shouldEnsureDesktopShortcut() {
@@ -1664,6 +1905,48 @@ ipcMain.handle('mineradio-restart-app', async () => {
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e.message || 'RESTART_FAILED' };
+  }
+});
+
+ipcMain.handle('mineradio-auto-update-check', async () => {
+  try {
+    return await checkAppAutoUpdate();
+  } catch (e) {
+    return sendAppAutoUpdateState({
+      ok: false,
+      supported: !!autoUpdater && app.isPackaged && process.platform === 'darwin',
+      status: 'error',
+      errorReason: e.message || 'AUTO_UPDATE_CHECK_FAILED',
+      message: '自动更新检查失败',
+    });
+  }
+});
+
+ipcMain.handle('mineradio-auto-update-download', async () => {
+  try {
+    return await downloadAppAutoUpdate();
+  } catch (e) {
+    return sendAppAutoUpdateState({
+      ok: false,
+      supported: !!autoUpdater && app.isPackaged && process.platform === 'darwin',
+      status: 'error',
+      errorReason: e.message || 'AUTO_UPDATE_DOWNLOAD_FAILED',
+      message: '自动更新下载失败',
+    });
+  }
+});
+
+ipcMain.handle('mineradio-auto-update-install', async () => {
+  try {
+    return await installAppAutoUpdate();
+  } catch (e) {
+    return sendAppAutoUpdateState({
+      ok: false,
+      supported: !!autoUpdater && app.isPackaged && process.platform === 'darwin',
+      status: 'error',
+      errorReason: e.message || 'AUTO_UPDATE_INSTALL_FAILED',
+      message: '自动更新安装失败',
+    });
   }
 });
 

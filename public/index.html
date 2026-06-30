@@ -2949,6 +2949,10 @@ var updatePreviewState = {
   sourceLabel: '',
   attempt: 0,
   attempts: 0,
+  autoUpdateSupported: false,
+  autoUpdateAvailable: false,
+  autoUpdateChecked: false,
+  autoUpdateError: '',
   errorReason: '',
   errorDetail: '',
   failedAttempts: [],
@@ -2962,6 +2966,7 @@ var updatePreviewState = {
     '单实例与快捷方式修复'
   ]
 };
+var desktopAutoUpdateUnsubscribe = null;
 function readSavedVolume() {
   try {
     var v = parseFloat(localStorage.getItem('apex-player-volume'));
@@ -23922,7 +23927,10 @@ function toggleFx(key) {
   if (key === 'desktopLyrics') applyDesktopLyricsState(true);
   if (key === 'desktopLyricsClickThrough' || key === 'desktopLyricsCinema' || key === 'desktopLyricsHighlight') pushDesktopLyricsState(true);
   if (key === 'lyricGlow' || key === 'lyricGlowBeat' || key === 'lyricGlowParticles') pushDesktopLyricsState(true);
-  if (key === 'lyricSkyline') refreshCurrentLyricStyle();
+  if (key === 'lyricSkyline') {
+    refreshCurrentLyricStyle();
+    pushDesktopLyricsState(true);
+  }
   if (key === 'wallpaperMode') applyWallpaperModeState(true);
   if (key === 'shelfShowPodcasts' || key === 'shelfMergeCollections') {
     if (shelfManager && shelfManager.rebuild) shelfManager.rebuild(true);
@@ -24196,6 +24204,94 @@ function formatUpdateSpeed(bytesPerSecond) {
   bytesPerSecond = Number(bytesPerSecond) || 0;
   return bytesPerSecond > 0 ? (formatUpdateBytes(bytesPerSecond) + '/s') : '';
 }
+function hasDesktopAutoUpdater() {
+  return !!(window.desktopWindow &&
+    typeof window.desktopWindow.checkAppUpdate === 'function' &&
+    typeof window.desktopWindow.downloadAppUpdate === 'function' &&
+    typeof window.desktopWindow.installAppUpdate === 'function');
+}
+function bindDesktopAutoUpdater() {
+  if (desktopAutoUpdateUnsubscribe || !window.desktopWindow || typeof window.desktopWindow.onAppUpdateState !== 'function') return;
+  desktopAutoUpdateUnsubscribe = window.desktopWindow.onAppUpdateState(function(state){
+    applyDesktopAutoUpdateState(state);
+  });
+}
+function applyDesktopAutoUpdateState(state) {
+  state = state || {};
+  updatePreviewState.autoUpdateChecked = true;
+  updatePreviewState.autoUpdateSupported = !!state.supported;
+  updatePreviewState.autoUpdateAvailable = !!state.updateAvailable;
+  updatePreviewState.autoUpdateError = state.errorReason || '';
+  if (state.currentVersion) updatePreviewState.currentVersion = state.currentVersion;
+  if (state.latestVersion) updatePreviewState.version = state.latestVersion;
+  if (state.releaseName && !updatePreviewState.hero) updatePreviewState.hero = state.releaseName;
+  if (Array.isArray(state.releaseNotes) && state.releaseNotes.length) updatePreviewState.notes = state.releaseNotes.slice(0, 4);
+
+  if (!state.supported) {
+    renderUpdatePreviewPanel();
+    return;
+  }
+
+  if (state.status === 'checking') {
+    updatePreviewState.status = 'idle';
+    updatePreviewState.mode = 'auto';
+    updatePreviewState.message = state.message || '正在检查更新';
+  } else if (state.status === 'available') {
+    updatePreviewState.status = 'idle';
+    updatePreviewState.mode = 'auto';
+    updatePreviewState.configured = true;
+    updatePreviewState.updateAvailable = true;
+    updatePreviewState.hero = state.releaseName || '发现新版本，可在应用内自动更新。';
+    updatePreviewState.message = state.message || '发现新版本';
+  } else if (state.status === 'not-available') {
+    updatePreviewState.status = 'idle';
+    updatePreviewState.mode = 'auto';
+    updatePreviewState.updateAvailable = false;
+    updatePreviewState.message = state.message || '当前已是最新版本';
+  } else if (state.status === 'downloading') {
+    updatePreviewState.status = 'downloading';
+    updatePreviewState.mode = 'auto';
+    updatePreviewState.updateAvailable = true;
+    updatePreviewState.progress = clampRange(Number(state.progress) || 0, 0, 100);
+    updatePreviewState.received = Number(state.received || 0);
+    updatePreviewState.total = Number(state.total || 0);
+    updatePreviewState.speedBps = Number(state.speedBps || 0);
+    updatePreviewState.message = state.message || '正在下载更新';
+  } else if (state.status === 'downloaded') {
+    updatePreviewState.status = 'ready';
+    updatePreviewState.mode = 'auto';
+    updatePreviewState.updateAvailable = true;
+    updatePreviewState.restartRequired = true;
+    updatePreviewState.progress = 100;
+    updatePreviewState.message = state.message || '更新已下载';
+    pulseUpdateReady();
+  } else if (state.status === 'installing') {
+    updatePreviewState.status = 'opening';
+    updatePreviewState.mode = 'auto';
+    updatePreviewState.message = state.message || '正在重启安装更新';
+  } else if (state.status === 'error') {
+    updatePreviewState.status = 'error';
+    updatePreviewState.mode = 'auto';
+    updatePreviewState.errorReason = state.errorReason || '自动更新失败';
+    updatePreviewState.message = state.message || updatePreviewState.errorReason;
+  }
+
+  updateUpdatePreviewProgress(updatePreviewState.progress || 0);
+  renderUpdatePreviewPanel();
+  setUpdatePreviewVisible(updatePreviewState.updateAvailable || updatePreviewState.preview);
+}
+async function refreshDesktopAutoUpdate() {
+  if (!hasDesktopAutoUpdater()) return null;
+  bindDesktopAutoUpdater();
+  try {
+    var state = await window.desktopWindow.checkAppUpdate();
+    applyDesktopAutoUpdateState(state);
+    return state;
+  } catch (e) {
+    updatePreviewState.autoUpdateError = (e && e.message) || '自动更新检查失败';
+    return null;
+  }
+}
 function updateProgressDetailText() {
   var parts = [];
   if (updatePreviewState.attempts > 1 && updatePreviewState.attempt > 0) {
@@ -24213,6 +24309,7 @@ function updateProgressDetailText() {
   return parts.join(' · ');
 }
 function initUpdatePreview() {
+  bindDesktopAutoUpdater();
   renderUpdatePreviewPanel();
   setUpdatePreviewVisible(true);
   checkLatestUpdate();
@@ -24248,6 +24345,7 @@ async function checkLatestUpdate() {
     renderUpdatePreviewPanel();
     setUpdatePreviewVisible(true);
   }
+  refreshDesktopAutoUpdate();
 }
 
 function applyLatestUpdateInfo(data) {
@@ -24322,6 +24420,7 @@ function syncUpdatePreviewStateClass() {
   var isError = updatePreviewState.status === 'error';
   var isOpening = updatePreviewState.status === 'opening';
   var isPatch = updatePreviewState.mode === 'patch';
+  var isAuto = updatePreviewState.mode === 'auto';
   if (entry) {
     entry.classList.toggle('downloading', isDownloading || isOpening);
     entry.classList.toggle('ready', isReady);
@@ -24335,24 +24434,30 @@ function syncUpdatePreviewStateClass() {
   var canDownloadUpdate = updatePreviewState.configured && updatePreviewState.updateAvailable && updatePreviewState.downloadUrl;
   var canOpenRelease = updatePreviewState.configured && updatePreviewState.updateAvailable && !updatePreviewState.downloadUrl && updatePreviewState.releaseUrl;
   if (label) {
-    if (isDownloading) label.textContent = (isPatch ? '快速补丁 ' : '正在下载 ') + Math.round(updatePreviewState.progress) + '%';
+    if (isDownloading) label.textContent = (isPatch ? '快速补丁 ' : (isAuto ? '正在更新 ' : '正在下载 ')) + Math.round(updatePreviewState.progress) + '%';
+    else if (isOpening && isAuto) label.textContent = '正在重启安装';
     else if (isOpening) label.textContent = '正在打开安装包';
+    else if (isError && updatePreviewState.mode === 'auto' && updatePreviewState.downloadUrl) label.textContent = '下载完整安装包';
     else if (isError && updatePreviewState.mode === 'patch' && updatePreviewState.downloadUrl) label.textContent = '下载完整安装包';
     else if (isError) label.textContent = updatePreviewState.mode === 'installer' ? '重试下载' : '重试更新';
+    else if (isReady && isAuto) label.textContent = '重启安装';
     else if (isReady && isPatch && updatePreviewState.restartRequired) label.textContent = '重启生效';
     else if (isReady && isPatch) label.textContent = '补丁已应用';
     else if (isReady && updatePreviewState.installerOpened) label.textContent = '安装包已打开';
     else if (isReady && updatePreviewState.installerPath) label.textContent = updatePreviewState.cached ? '打开已下载安装包' : '打开安装包';
     else if (isReady) label.textContent = updatePreviewState.configured ? '打开安装包' : '预览完成';
+    else if (updatePreviewState.autoUpdateSupported && updatePreviewState.autoUpdateAvailable) label.textContent = '下载并更新';
     else label.textContent = updatePreviewState.patchAvailable ? '安装快速补丁' : ((canDownloadUpdate || canOpenRelease) ? '下载完整安装包' : '立即更新');
   }
   if (btn) btn.disabled = false;
   var foot = document.getElementById('update-footnote');
   if (foot) {
-    if (isDownloading) foot.textContent = (updatePreviewState.message || (isPatch ? '正在下载快速补丁' : '正在下载完整安装包')) + (updateProgressDetailText() ? ' · ' + updateProgressDetailText() : '');
+    if (isDownloading) foot.textContent = (updatePreviewState.message || (isPatch ? '正在下载快速补丁' : (isAuto ? '正在下载更新' : '正在下载完整安装包'))) + (updateProgressDetailText() ? ' · ' + updateProgressDetailText() : '');
     else if (isError) foot.textContent = '下载失败：' + (updatePreviewState.errorReason || updatePreviewState.errorDetail || updatePreviewState.message || '请稍后重试') + (updatePreviewState.failedAttempts && updatePreviewState.failedAttempts.length ? ' · 已尝试 ' + updatePreviewState.failedAttempts.length + ' 条线路' : '');
+    else if (isReady && isAuto) foot.textContent = '更新已下载，点击后会重启 Mineradio 并自动安装。';
     else if (isReady && isPatch) foot.textContent = updatePreviewState.restartRequired ? '快速补丁已应用，重启 Mineradio 后生效。' : '快速补丁已应用。';
     else if (isReady) foot.textContent = updatePreviewState.cached ? '已复用上次校验通过的安装包，不会重复下载。' : '安装包已准备好，点击按钮后再打开安装。';
+    else if (updatePreviewState.autoUpdateSupported && updatePreviewState.autoUpdateAvailable) foot.textContent = '会在应用内下载更新，完成后重启 Mineradio 自动安装。';
     else if (updatePreviewState.patchAvailable) foot.textContent = '优先使用轻量补丁，只更新缺失或变更的资源文件；不适用时可下载完整安装包。';
     else foot.textContent = updatePreviewState.updateAvailable ? '没有可用快速补丁时会下载完整安装包。' : '当前版本已是最新。';
   }
@@ -24636,14 +24741,78 @@ async function openDownloadedUpdateInstaller(filePath) {
   }
 }
 
+async function startDesktopAutoUpdate() {
+  if (!hasDesktopAutoUpdater()) return false;
+  if (updatePreviewState.status === 'downloading' || updatePreviewState.status === 'opening') return true;
+  updatePreviewState.mode = 'auto';
+  if (updatePreviewState.status === 'ready') {
+    updatePreviewState.status = 'opening';
+    updatePreviewState.message = '正在重启安装更新';
+    syncUpdatePreviewStateClass();
+    try {
+      var installResult = await window.desktopWindow.installAppUpdate();
+      if (!installResult || installResult.ok === false) {
+        throw new Error((installResult && (installResult.errorReason || installResult.error)) || 'AUTO_UPDATE_INSTALL_FAILED');
+      }
+      return true;
+    } catch (e) {
+      updatePreviewState.status = 'error';
+      updatePreviewState.errorReason = (e && e.message) || '自动更新安装失败';
+      updatePreviewState.message = updatePreviewState.errorReason;
+      syncUpdatePreviewStateClass();
+      showToast('自动更新安装失败：' + updatePreviewState.errorReason);
+      return true;
+    }
+  }
+
+  if (updatePreviewState.timer) clearInterval(updatePreviewState.timer);
+  if (updatePreviewState.pollTimer) clearInterval(updatePreviewState.pollTimer);
+  updatePreviewState.status = 'downloading';
+  updatePreviewState.progress = 0;
+  updatePreviewState.received = 0;
+  updatePreviewState.total = 0;
+  updatePreviewState.speedBps = 0;
+  updatePreviewState.etaSeconds = 0;
+  updatePreviewState.errorReason = '';
+  updatePreviewState.errorDetail = '';
+  updatePreviewState.failedAttempts = [];
+  updatePreviewState.message = '正在下载更新';
+  updateUpdatePreviewProgress(0);
+  try {
+    var result = await window.desktopWindow.downloadAppUpdate();
+    applyDesktopAutoUpdateState(result);
+    if (!result || result.ok === false) {
+      throw new Error((result && (result.errorReason || result.error)) || 'AUTO_UPDATE_DOWNLOAD_FAILED');
+    }
+    return true;
+  } catch (e) {
+    updatePreviewState.status = 'error';
+    updatePreviewState.errorReason = (e && e.message) || '自动更新下载失败';
+    updatePreviewState.message = updatePreviewState.errorReason;
+    updateUpdatePreviewProgress(updatePreviewState.progress || 0);
+    showToast('自动更新失败，可改用完整安装包：' + updatePreviewState.errorReason);
+    return true;
+  }
+}
+
 function startUpdatePreviewDownload() {
   var releaseLink = updatePreviewState.downloadUrl || updatePreviewState.releaseUrl;
+  if (updatePreviewState.autoUpdateSupported && updatePreviewState.autoUpdateAvailable && updatePreviewState.status !== 'error') {
+    startDesktopAutoUpdate();
+    return;
+  }
+  if (updatePreviewState.mode === 'auto' && updatePreviewState.status === 'ready') {
+    startDesktopAutoUpdate();
+    return;
+  }
   if (updatePreviewState.status === 'ready' && updatePreviewState.mode === 'patch') {
     restartForAppliedPatch();
     return;
   }
   if (updatePreviewState.configured && updatePreviewState.updateAvailable) {
-    if (updatePreviewState.patchAvailable && updatePreviewState.patchUrl && !updatePreviewState.patchFallbackTried) {
+    if (updatePreviewState.mode === 'auto' && updatePreviewState.status === 'error' && updatePreviewState.downloadUrl) {
+      startRealUpdateDownload();
+    } else if (!updatePreviewState.autoUpdateSupported && updatePreviewState.patchAvailable && updatePreviewState.patchUrl && !updatePreviewState.patchFallbackTried) {
       startRealUpdatePatch();
     } else if (updatePreviewState.downloadUrl) {
       startRealUpdateDownload();
@@ -28049,10 +28218,13 @@ function currentDesktopLyricSnapshot() {
     if (idx >= 0) {
       var curLine = lines[idx] || { t:t, text:'' };
       var nextLine = lines[idx + 1];
+      var previousLine = lines[idx - 1];
       var nextT = nextLine && nextLine.t > curLine.t ? nextLine.t : Math.min((audio && audio.duration) || t + 4, curLine.t + (curLine.duration || 4.8));
       var span = Math.max(0.75, nextT - curLine.t);
       return {
         text: normalizeDesktopLyricText(curLine.text || currentLyricFallbackText()),
+        previous: normalizeDesktopLyricText(previousLine && previousLine.text || ''),
+        next: normalizeDesktopLyricText(nextLine && nextLine.text || ''),
         progress: getLyricLineProgress(curLine, nextLine, t),
         progressSpan: span
       };
@@ -28063,19 +28235,24 @@ function currentDesktopLyricSnapshot() {
       var introEnd = firstLine && firstLine.t > 0 ? firstLine.t : Math.min((audio && audio.duration) || 4.8, 4.8);
       return {
         text: introText,
+        previous: '',
+        next: normalizeDesktopLyricText(firstLine && firstLine.text || ''),
         progress: getLyricLineProgress({ t:0, text:introText, duration:Math.max(0.8, introEnd), charCount:Math.max(1, introText.length), fallback:true }, null, t),
         progressSpan: Math.max(0.8, introEnd)
       };
     }
   }
   if (stageLyrics && stageLyrics.currentText) {
+    var stageContext = normalizeStageLyricContext(stageLyrics.currentContext);
     return {
       text: normalizeDesktopLyricText(stageLyrics.currentText),
+      previous: normalizeDesktopLyricText(stageContext.previous || ''),
+      next: normalizeDesktopLyricText(stageContext.next || ''),
       progress: stageLyrics.current && stageLyrics.current.userData ? clampRange(Number(stageLyrics.current.userData.lastLyricProgress) || 0, 0, 1) : 0,
       progressSpan: 4.8
     };
   }
-  return { text: normalizeDesktopLyricText(currentDesktopSongMeta().title || 'Mineradio'), progress: 0, progressSpan: 4.8 };
+  return { text: normalizeDesktopLyricText(currentDesktopSongMeta().title || 'Mineradio'), previous: '', next: '', progress: 0, progressSpan: 4.8 };
 }
 function desktopOverlayColorValue(value, fallback) {
   var raw = String(value || '').trim();
@@ -28155,6 +28332,9 @@ function desktopLyricsPayload(forceBeatMap) {
   var payload = {
     enabled: !!fx.desktopLyrics && !isDevelopmentLockedFx('desktopLyrics'),
     text: lyric.text,
+    previous: lyric.previous || '',
+    next: lyric.next || '',
+    skyline: !!fx.lyricSkyline,
     progress: lyric.progress,
     progressSpan: lyric.progressSpan,
     title: meta.title,
@@ -28203,7 +28383,7 @@ function pushDesktopLyricsState(force) {
   var payload = desktopLyricsPayload(!!force);
   var colors = payload.colors || {};
   var motion = payload.motion || {};
-  var key = payload.enabled + '|' + payload.text + '|' + Math.round(payload.progress * 1000) + '|' + Math.round((payload.progressSpan || 0) * 100) + '|' + payload.playing + '|' + payload.size + '|' + payload.opacity + '|' + payload.y + '|' + payload.clickThrough + '|' + payload.cinema + '|' + payload.highlightFollow + '|' + payload.frameRate + '|' + payload.fontFamily + '|' + payload.fontWeight + '|' + payload.letterSpacing + '|' + payload.lineHeight + '|' + payload.lyricScale + '|' + payload.feather + '|' + payload.beatMapKey + '|' + colors.primary + '|' + colors.secondary + '|' + colors.highlight + '|' + colors.glow + '|' + motion.lyricGlow + '|' + motion.lyricGlowBeat + '|' + Math.round((motion.lyricGlowStrength || 0) * 100) + '|' + Math.round((motion.highBloom || 0) * 100) + '|' + Math.round((motion.beatGlow || 0) * 100) + '|' + Math.round((motion.beatPulse || 0) * 100) + '|' + Math.round((motion.bass || 0) * 100);
+  var key = payload.enabled + '|' + payload.text + '|' + payload.previous + '|' + payload.next + '|' + payload.skyline + '|' + Math.round(payload.progress * 1000) + '|' + Math.round((payload.progressSpan || 0) * 100) + '|' + payload.playing + '|' + payload.size + '|' + payload.opacity + '|' + payload.y + '|' + payload.clickThrough + '|' + payload.cinema + '|' + payload.highlightFollow + '|' + payload.frameRate + '|' + payload.fontFamily + '|' + payload.fontWeight + '|' + payload.letterSpacing + '|' + payload.lineHeight + '|' + payload.lyricScale + '|' + payload.feather + '|' + payload.beatMapKey + '|' + colors.primary + '|' + colors.secondary + '|' + colors.highlight + '|' + colors.glow + '|' + motion.lyricGlow + '|' + motion.lyricGlowBeat + '|' + Math.round((motion.lyricGlowStrength || 0) * 100) + '|' + Math.round((motion.highBloom || 0) * 100) + '|' + Math.round((motion.beatGlow || 0) * 100) + '|' + Math.round((motion.beatPulse || 0) * 100) + '|' + Math.round((motion.bass || 0) * 100);
   if (!force && key === desktopOverlayPushState.lastLyricsKey && now - desktopOverlayPushState.lyricsAt < 900) return;
   desktopOverlayPushState.lyricsAt = now;
   desktopOverlayPushState.lastLyricsKey = key;
