@@ -72,6 +72,7 @@ body.desktop-shell #desktop-titlebar #update-entry.available{display:flex}
 body.desktop-shell #desktop-titlebar #update-entry svg{width:18px;height:18px}
 body.desktop-shell #desktop-titlebar #update-entry::before,
 body.desktop-shell #desktop-titlebar #update-entry::after{display:none}
+body.desktop-shell #desktop-titlebar .update-version-badge{display:flex}
 body.desktop-shell #desktop-titlebar #visual-guide-btn:hover,
 body.desktop-shell #desktop-titlebar #update-entry:hover{background:rgba(255,83,103,.10);border-color:rgba(255,83,103,.32);color:#fff;transform:translateY(-1px)}
 body.desktop-shell #search-area{top:-92px}
@@ -499,6 +500,7 @@ body.desktop-shell.empty-home-active.controls-visible #empty-home{bottom:126px}
 .update-progress-ring{opacity:0;stroke:rgba(255,228,170,.92);stroke-width:1.95;fill:none;stroke-linecap:round;stroke-dasharray:55.29;stroke-dashoffset:55.29;transform:rotate(-90deg);transform-origin:12px 12px;transition:opacity .2s;filter:drop-shadow(0 0 5px rgba(244,210,138,.22))}
 .update-entry.downloading .update-progress-ring{opacity:1}
 .update-entry.downloading .update-ring{opacity:.28}
+.update-version-badge{display:none;height:30px;padding:0 9px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(4,8,10,.34);color:rgba(224,250,255,.58);font-size:11px;font-weight:760;font-variant-numeric:tabular-nums;align-items:center;justify-content:center;letter-spacing:0;line-height:1;white-space:nowrap}
 #update-modal.modal-mask{background:rgba(0,0,0,.74);backdrop-filter:blur(12px) saturate(1.08);-webkit-backdrop-filter:blur(12px) saturate(1.08)}
 .modal.update-modal{width:min(408px,92vw);max-width:min(408px,92vw);padding:0;text-align:left;border-radius:18px;overflow:hidden;background:rgba(8,8,9,.965);border-color:rgba(255,255,255,.10);box-shadow:0 32px 96px rgba(0,0,0,.66),0 0 0 1px rgba(244,210,138,.055),inset 0 1px 0 rgba(255,255,255,.08)}
 .modal.update-modal::before{content:'';position:absolute;top:0;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,rgba(244,210,138,.58),rgba(255,255,255,.20),transparent);opacity:.72;pointer-events:none}
@@ -1936,6 +1938,7 @@ html.control-glass-svg-ok #visual-guide-btn:hover{
   </div>
   <div class="desktop-utility-controls">
     <button id="visual-guide-btn" class="icon-btn" type="button" onclick="startVisualGuide({ manual: true })" title="查看使用引导" aria-label="查看使用引导">?</button>
+    <span id="update-version-badge" class="update-version-badge" aria-label="当前版本">v1.1.4</span>
     <button id="update-entry" class="update-entry" type="button" onclick="openUpdatePanel()" title="发现新版本" aria-label="发现新版本">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <circle class="update-ring" cx="12" cy="12" r="8.8"></circle>
@@ -24204,6 +24207,14 @@ function formatUpdateSpeed(bytesPerSecond) {
   bytesPerSecond = Number(bytesPerSecond) || 0;
   return bytesPerSecond > 0 ? (formatUpdateBytes(bytesPerSecond) + '/s') : '';
 }
+function renderCurrentVersionBadge() {
+  var badge = document.getElementById('update-version-badge');
+  if (!badge) return;
+  var version = String(updatePreviewState.currentVersion || '').replace(/^v/i, '');
+  if (!version) version = '1.1.4';
+  badge.textContent = 'v' + version;
+  badge.title = '当前版本 v' + version;
+}
 function hasDesktopAutoUpdater() {
   return !!(window.desktopWindow &&
     typeof window.desktopWindow.checkAppUpdate === 'function' &&
@@ -24310,6 +24321,7 @@ function updateProgressDetailText() {
 }
 function initUpdatePreview() {
   bindDesktopAutoUpdater();
+  renderCurrentVersionBadge();
   renderUpdatePreviewPanel();
   setUpdatePreviewVisible(true);
   checkLatestUpdate();
@@ -24401,6 +24413,7 @@ function renderUpdatePreviewPanel() {
   var hero = document.getElementById('update-hero-main');
   var list = document.getElementById('update-list');
   if (version) version.textContent = 'v' + updatePreviewState.version;
+  renderCurrentVersionBadge();
   if (hero) hero.textContent = updatePreviewState.hero || '当前版本，更新检测已就绪。';
   if (list) {
     var notes = Array.isArray(updatePreviewState.notes) && updatePreviewState.notes.length ? updatePreviewState.notes : ['更新检测已就绪'];
@@ -24421,6 +24434,9 @@ function syncUpdatePreviewStateClass() {
   var isOpening = updatePreviewState.status === 'opening';
   var isPatch = updatePreviewState.mode === 'patch';
   var isAuto = updatePreviewState.mode === 'auto';
+  var isCurrentVersion = !isDownloading && !isOpening && !isReady && !isError &&
+    updatePreviewState.configured && !updatePreviewState.updateAvailable &&
+    (updatePreviewState.autoUpdateChecked || updatePreviewState.autoUpdateSupported);
   if (entry) {
     entry.classList.toggle('downloading', isDownloading || isOpening);
     entry.classList.toggle('ready', isReady);
@@ -24440,16 +24456,17 @@ function syncUpdatePreviewStateClass() {
     else if (isError && updatePreviewState.mode === 'auto' && updatePreviewState.downloadUrl) label.textContent = '下载完整安装包';
     else if (isError && updatePreviewState.mode === 'patch' && updatePreviewState.downloadUrl) label.textContent = '下载完整安装包';
     else if (isError) label.textContent = updatePreviewState.mode === 'installer' ? '重试下载' : '重试更新';
-    else if (isReady && isAuto) label.textContent = '重启安装';
+    else if (isReady && isAuto) label.textContent = '立刻重启';
     else if (isReady && isPatch && updatePreviewState.restartRequired) label.textContent = '重启生效';
     else if (isReady && isPatch) label.textContent = '补丁已应用';
     else if (isReady && updatePreviewState.installerOpened) label.textContent = '安装包已打开';
     else if (isReady && updatePreviewState.installerPath) label.textContent = updatePreviewState.cached ? '打开已下载安装包' : '打开安装包';
     else if (isReady) label.textContent = updatePreviewState.configured ? '打开安装包' : '预览完成';
     else if (updatePreviewState.autoUpdateSupported && updatePreviewState.autoUpdateAvailable) label.textContent = '下载并更新';
+    else if (isCurrentVersion) label.textContent = '已是最新版';
     else label.textContent = updatePreviewState.patchAvailable ? '安装快速补丁' : ((canDownloadUpdate || canOpenRelease) ? '下载完整安装包' : '立即更新');
   }
-  if (btn) btn.disabled = false;
+  if (btn) btn.disabled = isCurrentVersion || isDownloading || isOpening;
   var foot = document.getElementById('update-footnote');
   if (foot) {
     if (isDownloading) foot.textContent = (updatePreviewState.message || (isPatch ? '正在下载快速补丁' : (isAuto ? '正在下载更新' : '正在下载完整安装包'))) + (updateProgressDetailText() ? ' · ' + updateProgressDetailText() : '');
@@ -24458,6 +24475,7 @@ function syncUpdatePreviewStateClass() {
     else if (isReady && isPatch) foot.textContent = updatePreviewState.restartRequired ? '快速补丁已应用，重启 Mineradio 后生效。' : '快速补丁已应用。';
     else if (isReady) foot.textContent = updatePreviewState.cached ? '已复用上次校验通过的安装包，不会重复下载。' : '安装包已准备好，点击按钮后再打开安装。';
     else if (updatePreviewState.autoUpdateSupported && updatePreviewState.autoUpdateAvailable) foot.textContent = '会在应用内下载更新，完成后重启 Mineradio 自动安装。';
+    else if (isCurrentVersion) foot.textContent = '当前版本已是最新，无需操作。';
     else if (updatePreviewState.patchAvailable) foot.textContent = '优先使用轻量补丁，只更新缺失或变更的资源文件；不适用时可下载完整安装包。';
     else foot.textContent = updatePreviewState.updateAvailable ? '没有可用快速补丁时会下载完整安装包。' : '当前版本已是最新。';
   }

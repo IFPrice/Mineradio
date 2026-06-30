@@ -31,6 +31,8 @@ let htmlFullscreenActive = false;
 let windowFullscreenActive = false;
 let mainWindowStateTimer = null;
 let appAutoUpdaterConfigured = false;
+let appAutoUpdateDownloadPromise = null;
+let appAutoUpdateInstallInProgress = false;
 const registeredGlobalHotkeys = new Map();
 const registeredSystemMediaHotkeys = new Map();
 
@@ -698,44 +700,55 @@ async function checkAppAutoUpdate() {
 }
 
 async function downloadAppAutoUpdate() {
-  const unsupportedReason = appAutoUpdaterUnsupportedReason();
-  if (unsupportedReason) {
-    return sendAppAutoUpdateState({
-      ok: false,
-      supported: false,
-      status: 'unsupported',
-      errorReason: unsupportedReason,
-      message: '自动更新不可用',
-    });
-  }
-  configureAppAutoUpdater();
-  if (appAutoUpdateState.status === 'downloaded') return appAutoUpdateState;
-  if (!appAutoUpdateState.updateAvailable) await checkAppAutoUpdate();
-  if (!appAutoUpdateState.updateAvailable) {
-    return sendAppAutoUpdateState({
-      ok: false,
+  if (appAutoUpdateDownloadPromise) return appAutoUpdateDownloadPromise;
+  appAutoUpdateDownloadPromise = (async () => {
+    const unsupportedReason = appAutoUpdaterUnsupportedReason();
+    if (unsupportedReason) {
+      return sendAppAutoUpdateState({
+        ok: false,
+        supported: false,
+        status: 'unsupported',
+        errorReason: unsupportedReason,
+        message: '自动更新不可用',
+      });
+    }
+    configureAppAutoUpdater();
+    if (appAutoUpdateState.status === 'downloaded') return appAutoUpdateState;
+    if (!appAutoUpdateState.updateAvailable) await checkAppAutoUpdate();
+    if (!appAutoUpdateState.updateAvailable) {
+      return sendAppAutoUpdateState({
+        ok: false,
+        supported: true,
+        status: 'not-available',
+        errorReason: 'NO_UPDATE_AVAILABLE',
+        message: '当前已是最新版本',
+      });
+    }
+    sendAppAutoUpdateState({
+      ok: true,
       supported: true,
-      status: 'not-available',
-      errorReason: 'NO_UPDATE_AVAILABLE',
-      message: '当前已是最新版本',
+      status: 'downloading',
+      progress: 0,
+      received: 0,
+      total: 0,
+      speedBps: 0,
+      errorReason: '',
+      message: '正在下载更新',
     });
+    await autoUpdater.downloadUpdate();
+    return appAutoUpdateState;
+  })();
+  try {
+    return await appAutoUpdateDownloadPromise;
+  } finally {
+    appAutoUpdateDownloadPromise = null;
   }
-  sendAppAutoUpdateState({
-    ok: true,
-    supported: true,
-    status: 'downloading',
-    progress: 0,
-    received: 0,
-    total: 0,
-    speedBps: 0,
-    errorReason: '',
-    message: '正在下载更新',
-  });
-  await autoUpdater.downloadUpdate();
-  return appAutoUpdateState;
 }
 
 async function installAppAutoUpdate() {
+  if (appAutoUpdateInstallInProgress) {
+    return { ok: true, supported: true, installing: true };
+  }
   const unsupportedReason = appAutoUpdaterUnsupportedReason();
   if (unsupportedReason) {
     return { ok: false, supported: false, errorReason: unsupportedReason };
@@ -750,6 +763,7 @@ async function installAppAutoUpdate() {
     status: 'installing',
     message: '正在重启安装更新',
   });
+  appAutoUpdateInstallInProgress = true;
   autoUpdater.quitAndInstall(false, true);
   return { ok: true, supported: true };
 }

@@ -75,3 +75,30 @@ test('update modal prefers automatic app updates before DMG fallback', () => {
   assert.match(indexHtml, /window\.desktopWindow\.installAppUpdate\(\)/);
   assert.match(indexHtml, /重启安装/);
 });
+
+test('update UI shows the current version and disables the primary button when current', () => {
+  assert.match(indexHtml, /id="update-version-badge"/);
+  assert.match(indexHtml, /\.update-version-badge/);
+  assert.match(indexHtml, /function renderCurrentVersionBadge\(/);
+  assert.match(indexHtml, /renderCurrentVersionBadge\(\)/);
+
+  const syncBody = functionBody(indexHtml, 'syncUpdatePreviewStateClass');
+  assert.match(syncBody, /isCurrentVersion/);
+  assert.match(syncBody, /label\.textContent = '已是最新版'/);
+  assert.match(syncBody, /btn\.disabled = isCurrentVersion/);
+  assert.match(syncBody, /else if \(isReady && isAuto\) label\.textContent = '立刻重启'/);
+});
+
+test('main process coalesces duplicate auto update download and install requests', () => {
+  assert.match(mainJs, /let appAutoUpdateDownloadPromise = null/);
+  assert.match(mainJs, /let appAutoUpdateInstallInProgress = false/);
+
+  const downloadBody = functionBody(mainJs, 'downloadAppAutoUpdate');
+  assert.match(downloadBody, /if \(appAutoUpdateDownloadPromise\) return appAutoUpdateDownloadPromise/);
+  assert.match(downloadBody, /appAutoUpdateDownloadPromise = \(async \(\) =>/);
+  assert.match(downloadBody, /appAutoUpdateDownloadPromise = null/);
+
+  const installBody = functionBody(mainJs, 'installAppAutoUpdate');
+  assert.match(installBody, /if \(appAutoUpdateInstallInProgress\)/);
+  assert.match(installBody, /appAutoUpdateInstallInProgress = true/);
+});
