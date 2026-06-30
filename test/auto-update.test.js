@@ -99,10 +99,18 @@ test('update modal keeps the current app version when remote latest is older or 
   assert.match(latestBody, /var currentVersion = data\.currentVersion \|\| updatePreviewState\.currentVersion/);
   assert.match(latestBody, /var latestVersion = data\.latestVersion \|\| release\.version \|\| currentVersion/);
   assert.match(latestBody, /updatePreviewState\.version = updatePreviewState\.updateAvailable \? latestVersion : currentVersion/);
+  assert.match(latestBody, /if \(updatePreviewState\.updateAvailable\) \{/);
+  assert.match(latestBody, /updatePreviewState\.hero = cleanUpdateCopyLine\(release\.summary\) \|\| defaultUpdateHero\(\)/);
+  assert.match(latestBody, /updatePreviewState\.notes = normalizeUpdateNotes\(release\.notes\)/);
+  assert.match(latestBody, /else \{/);
+  assert.match(latestBody, /updatePreviewState\.hero = defaultUpdateHero\(\)/);
+  assert.match(latestBody, /updatePreviewState\.notes = defaultUpdateNotes\(\)/);
 
   const autoBody = functionBody(indexHtml, 'applyDesktopAutoUpdateState');
   assert.match(autoBody, /if \(state\.latestVersion && updatePreviewState\.autoUpdateAvailable\) updatePreviewState\.version = state\.latestVersion/);
   assert.match(autoBody, /else updatePreviewState\.version = updatePreviewState\.currentVersion/);
+  assert.match(autoBody, /if \(updatePreviewState\.autoUpdateAvailable\) \{/);
+  assert.match(autoBody, /updatePreviewState\.notes = normalizeUpdateNotes\(state\.releaseNotes\)/);
 });
 
 test('update modal default copy describes the 1.1.5 updater experience', () => {
@@ -121,7 +129,7 @@ test('update modal default copy describes the 1.1.5 updater experience', () => {
   assert.match(indexHtml, /function cleanUpdateCopyLine\(/);
   assert.match(indexHtml, /function normalizeUpdateNotes\(/);
   assert.match(applyBody, /cleanReleaseName \|\| defaultUpdateHero\(\)/);
-  assert.match(applyBody, /updatePreviewState\.notes = normalizeUpdateNotes\(state\.releaseNotes\)/);
+  assert.match(applyBody, /if \(updatePreviewState\.autoUpdateAvailable\) \{/);
   assert.doesNotMatch(applyBody, /state\.releaseNotes\.slice\(0,\s*4\)/);
 });
 

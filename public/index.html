@@ -24276,8 +24276,10 @@ function applyDesktopAutoUpdateState(state) {
   if (state.latestVersion && updatePreviewState.autoUpdateAvailable) updatePreviewState.version = state.latestVersion;
   else updatePreviewState.version = updatePreviewState.currentVersion;
   var cleanReleaseName = cleanUpdateCopyLine(state.releaseName);
-  if (cleanReleaseName && !updatePreviewState.hero) updatePreviewState.hero = cleanReleaseName;
-  if (Array.isArray(state.releaseNotes) && state.releaseNotes.length) updatePreviewState.notes = normalizeUpdateNotes(state.releaseNotes);
+  if (updatePreviewState.autoUpdateAvailable) {
+    if (cleanReleaseName && !updatePreviewState.hero) updatePreviewState.hero = cleanReleaseName;
+    if (Array.isArray(state.releaseNotes) && state.releaseNotes.length) updatePreviewState.notes = normalizeUpdateNotes(state.releaseNotes);
+  }
 
   if (!state.supported) {
     renderUpdatePreviewPanel();
@@ -24418,8 +24420,13 @@ function applyLatestUpdateInfo(data) {
   updatePreviewState.patchAvailable = !!(release.patchAvailable && release.patch && release.patch.downloadUrl);
   updatePreviewState.patchUrl = updatePreviewState.patchAvailable ? release.patch.downloadUrl : '';
   updatePreviewState.patchFallbackTried = false;
-  updatePreviewState.hero = cleanUpdateCopyLine(release.summary) || defaultUpdateHero();
-  updatePreviewState.notes = normalizeUpdateNotes(release.notes);
+  if (updatePreviewState.updateAvailable) {
+    updatePreviewState.hero = cleanUpdateCopyLine(release.summary) || defaultUpdateHero();
+    updatePreviewState.notes = normalizeUpdateNotes(release.notes);
+  } else {
+    updatePreviewState.hero = defaultUpdateHero();
+    updatePreviewState.notes = defaultUpdateNotes();
+  }
   renderUpdatePreviewPanel();
   setUpdatePreviewVisible(updatePreviewState.updateAvailable || updatePreviewState.preview);
 }
